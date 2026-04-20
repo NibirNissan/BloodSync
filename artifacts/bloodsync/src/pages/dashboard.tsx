@@ -608,24 +608,53 @@ function VerificationsTab() {
   const handleAction = async (v: VerifRecord, status: "verified" | "rejected") => {
     setActionLoading(v.id);
     try {
-      // Atomic, idempotent server-side action — see init.sql.
-      const rpc = status === "verified" ? "approve_verification" : "reject_verification";
-      const { error: rpcErr } = await supabase.rpc(rpc, { p_id: v.id });
-      if (rpcErr) throw rpcErr;
+      if (status === "verified") {
+        // Preferred path: server-side RPC `approve_donation` flips the
+        // verification row to 'verified' AND atomically increments the
+        // donor's `successful_donations` counter in one transaction.
+        // See: artifacts/bloodsync/supabase/approve_donation.sql
+        const { error: rpcErr } = await supabase.rpc("approve_donation", {
+          verification_id: v.id,
+        });
+        if (rpcErr) {
+          // Surface a clear, debuggable hint if the RPC isn't installed.
+          const msg = rpcErr.message || String(rpcErr);
+          if (/function .* does not exist|404|Not Found/i.test(msg)) {
+            throw new Error(
+              `Supabase RPC "approve_donation" not found. Run supabase/approve_donation.sql in the SQL editor. (${msg})`,
+            );
+          }
+          throw rpcErr;
+        }
+      } else {
+        // Reject = direct UPDATE on donations_verification.
+        const { error: updErr } = await supabase
+          .from("donations_verification")
+          .update({ verification_status: "rejected" })
+          .eq("id", v.id);
+        if (updErr) throw updErr;
+      }
 
+      // Refresh every cache that depends on this row so the item moves
+      // from the Pending tab to Verified / Rejected instantly.
       queryClient.invalidateQueries({ queryKey: SUPABASE_VERIFICATIONS_KEY });
       queryClient.invalidateQueries({ queryKey: ["supabase", "donors"] });
       queryClient.invalidateQueries({ queryKey: getListDonorsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetStatsSummaryQueryKey() });
+
       toast({
-        title: status === "verified" ? "Verification approved — donor count incremented" : "Verification rejected",
+        title: status === "verified" ? "Donation Approved!" : "Donation Rejected",
+        description: status === "verified"
+          ? "Donor's successful-donation count was incremented."
+          : "The verification was marked as rejected.",
       });
     } catch (err: any) {
       // Always refetch so the UI reflects the true state even on partial failure.
       queryClient.invalidateQueries({ queryKey: SUPABASE_VERIFICATIONS_KEY });
       toast({
-        title: "Action failed",
-        description: err?.message || "Could not update verification.",
+        title: status === "verified" ? "Approval failed" : "Rejection failed",
+        // Show the EXACT Supabase error message for debugging.
+        description: err?.message || JSON.stringify(err) || "Unknown error.",
         variant: "destructive",
       });
     } finally {
