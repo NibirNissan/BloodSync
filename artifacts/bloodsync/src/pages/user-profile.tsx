@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 import { supabase, type Donor } from "@/lib/supabase";
 import {
   AlertCircle, Loader2, Search, Droplet, MapPin, Phone,
@@ -191,6 +192,11 @@ export default function UserProfile() {
             </div>
           )}
         </GlassCard>
+
+        {/* Change Password */}
+        <div className="mt-6">
+          <ChangePasswordCard />
+        </div>
       </div>
     </div>
   );

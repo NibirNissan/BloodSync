@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
+import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -878,6 +879,14 @@ export default function DonorDashboard() {
 
             <DonationTimeline items={timelineItems} />
           </div>
+        </motion.div>
+
+        {/* CHANGE PASSWORD */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+          className="mt-6 max-w-xl"
+        >
+          <ChangePasswordCard />
         </motion.div>
 
       </div>

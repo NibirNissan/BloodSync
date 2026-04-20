@@ -28,6 +28,8 @@ interface AuthContextValue {
   }) => Promise<{ session: Session | null; user: User | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /** Update the currently signed-in user's password via Supabase Auth. */
+  updatePassword: (newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -109,9 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => loadProfile(user?.id ?? null);
 
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+  };
+
   const value = useMemo<AuthContextValue>(() => ({
     user, session, profile, loading,
-    signInWithPassword, signUp, signOut, refreshProfile,
+    signInWithPassword, signUp, signOut, refreshProfile, updatePassword,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [user, session, profile, loading]);
 
@@ -126,7 +133,7 @@ export function useAuth(): AuthContextValue {
 
 /** Returns the post-login route for a given role. */
 export function routeForRole(role: UserRole | null | undefined): string {
-  if (role === "admin")  return "/dashboard";
+  if (role === "admin")  return "/admin";
   if (role === "donor")  return "/donor-dashboard";
   return "/user-profile";
 }

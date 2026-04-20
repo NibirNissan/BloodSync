@@ -1,9 +1,12 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import { resolveProofUrl } from "@/lib/upload";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
+import { ChangePasswordCard } from "@/components/ChangePasswordCard";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,83 +30,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   Users, Droplet, ShieldCheck, Activity, AlertCircle, Clock, CheckCircle2,
-  Lock, Eye, EyeOff, LayoutDashboard, UserCog, ClipboardList,
+  LayoutDashboard, UserCog, ClipboardList,
   Plus, Pencil, Trash2, X, ChevronDown, Search, Building2,
   Phone, MapPin, Calendar, TrendingUp, LogOut, Loader2,
-  ThumbsUp, ThumbsDown, FileImage,
+  ThumbsUp, ThumbsDown, FileImage, KeyRound,
 } from "lucide-react";
 import { format } from "date-fns";
 
-const ADMIN_PIN = "admin1234";
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const DISTRICTS = ["Dhaka", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Barisal", "Rangpur", "Mymensingh", "Comilla", "Narayanganj", "Gazipur", "Other"];
 
 type Tab = "overview" | "donors" | "verifications";
-
-// ─── Password Gate ───────────────────────────────────────────────────────────
-function AdminGate({ onUnlock }: { onUnlock: () => void }) {
-  const [pin, setPin] = useState("");
-  const [showPin, setShowPin] = useState(false);
-  const [error, setError] = useState(false);
-
-  const submit = () => {
-    if (pin === ADMIN_PIN) { onUnlock(); }
-    else { setError(true); setTimeout(() => setError(false), 1200); }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center pt-20">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <GlassCard className="p-8 w-full max-w-sm text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center mx-auto mb-5">
-            <Lock className="w-7 h-7 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-1">Admin Access</h2>
-          <p className="text-sm text-gray-500 mb-6">Enter your admin PIN to continue</p>
-
-          <div className="space-y-4">
-            <div className="relative">
-              <Input
-                type={showPin ? "text" : "password"}
-                placeholder="Enter PIN"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submit()}
-                className={`h-12 text-center text-lg tracking-widest bg-white/5 border-white/10 text-white rounded-xl focus-visible:ring-primary transition-colors ${error ? "border-red-500/60 bg-red-500/5" : ""}`}
-              />
-              <button
-                onClick={() => setShowPin(!showPin)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-              >
-                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {error && (
-              <motion.p
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="text-red-400 text-sm"
-              >
-                Incorrect PIN. Try again.
-              </motion.p>
-            )}
-
-            <Button
-              onClick={submit}
-              className="w-full h-11 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold"
-            >
-              Unlock Dashboard
-            </Button>
-
-            <p className="text-xs text-gray-600">
-              Hint: <span className="font-mono text-gray-500">{ADMIN_PIN}</span>
-            </p>
-          </div>
-        </GlassCard>
-      </motion.div>
-    </div>
-  );
-}
 
 // ─── Add / Edit Donor Modal ───────────────────────────────────────────────────
 type DonorRecord = NonNullable<ReturnType<typeof useListDonors>["data"]> extends ReadonlyArray<infer T> ? T : any;
@@ -881,21 +818,62 @@ function VerificationsTab() {
 
 // ─── Main Dashboard — single full-width page ─────────────────────────────────
 export default function Dashboard() {
-  const [authenticated, setAuthenticated] = useState(() => {
-    return sessionStorage.getItem("bloodsync_admin") === "true";
-  });
+  const [, setLocation] = useLocation();
+  const { user, profile, loading, signOut } = useAuth();
 
-  const unlock = () => {
-    sessionStorage.setItem("bloodsync_admin", "true");
-    setAuthenticated(true);
+  // Auth + role gate. While loading OR while the profile row for an
+  // authenticated user is still resolving, show a loader so admins
+  // never momentarily see the "Access denied" card on refresh.
+  if (loading || (user && !profile)) {
+    return (
+      <div className="min-h-screen pt-32 flex items-center justify-center w-full">
+        <Loader2 className="w-7 h-7 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-32 pb-20 flex items-center justify-center w-full px-6">
+        <GlassCard className="p-8 max-w-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center mx-auto mb-4">
+            <ShieldCheck className="w-6 h-6 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-1">Sign in required</h2>
+          <p className="text-sm text-gray-500 mb-5">
+            অ্যাডমিন এলাকায় প্রবেশ করতে সাইন ইন করুন।
+          </p>
+          <Button
+            onClick={() => setLocation("/login")}
+            className="w-full h-11 btn-glow-red text-white border-0 rounded-xl"
+          >
+            Go to Login
+          </Button>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  if (profile?.role !== "admin") {
+    return (
+      <div className="min-h-screen pt-32 pb-20 flex items-center justify-center w-full px-6">
+        <GlassCard className="p-8 max-w-sm text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-1">Access denied</h2>
+          <p className="text-sm text-gray-500">
+            এই এলাকা শুধুমাত্র Super Admin-দের জন্য সংরক্ষিত।
+          </p>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  const handleSignOut = async () => {
+    await signOut();
+    setLocation("/");
   };
-
-  const logout = () => {
-    sessionStorage.removeItem("bloodsync_admin");
-    setAuthenticated(false);
-  };
-
-  if (!authenticated) return <AdminGate onUnlock={unlock} />;
 
   return (
     <div className="min-h-screen pt-28 pb-20 w-full px-6 sm:px-10 lg:px-16 relative overflow-hidden">
@@ -921,7 +899,7 @@ export default function Dashboard() {
             <p className="text-gray-400 mt-2 text-base">BloodSync প্ল্যাটফর্মের পূর্ণ পরিচালনা নিয়ন্ত্রণ</p>
           </div>
           <button
-            onClick={logout}
+            onClick={handleSignOut}
             className="flex items-center gap-2 text-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-4 py-2.5 rounded-full transition-all bg-white/[0.04] backdrop-blur-md hover:bg-white/[0.08]"
           >
             <LogOut className="w-4 h-4" />
@@ -973,6 +951,24 @@ export default function Dashboard() {
             </div>
           </div>
           <DonorsTab />
+        </motion.section>
+
+        {/* ── ACCOUNT — Change Password ── */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+        >
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+              <KeyRound className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Account Security</h2>
+              <p className="text-xs text-gray-500">আপনার পাসওয়ার্ড নিয়মিত পরিবর্তন করে অ্যাকাউন্ট নিরাপদ রাখুন</p>
+            </div>
+          </div>
+          <div className="max-w-xl">
+            <ChangePasswordCard />
+          </div>
         </motion.section>
 
       </div>
