@@ -20,9 +20,10 @@ export function Navbar() {
   };
 
   // Admin link is intentionally hidden from public navigation.
+  // Bengali for content, English (Poppins) for actions.
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/find-donors", label: "Find Donors" },
+    { href: "/", label: "হোম" },
+    { href: "/find-donors", label: "ডোনার খুঁজুন" },
   ];
 
   return (

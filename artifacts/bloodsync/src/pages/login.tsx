@@ -99,12 +99,12 @@ export default function Login() {
               : <Droplet className="w-7 h-7 text-primary" fill="currentColor" />}
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">
-            {mode === "admin" ? "Admin Sign In" : "Welcome Back"}
+            {mode === "admin" ? "Admin Sign In" : "আবার স্বাগতম"}
           </h1>
           <p className="text-gray-400 text-sm">
             {mode === "admin"
-              ? "Restricted area — admin credentials required"
-              : "Sign in to your BloodSync account"}
+              ? "সংরক্ষিত এলাকা — অ্যাডমিন পরিচয় প্রয়োজন"
+              : "আপনার BloodSync অ্যাকাউন্টে সাইন ইন করুন"}
           </p>
         </div>
 
@@ -177,13 +177,13 @@ export default function Login() {
                 </Button>
                 <div className="text-center text-sm text-gray-500 space-y-1">
                   <p>
-                    Need an account?{" "}
+                    অ্যাকাউন্ট নেই?{" "}
                     <a href="/register-user" className="text-white hover:text-primary transition-colors font-medium">
                       Sign up as User
                     </a>
                   </p>
                   <p>
-                    Want to give blood?{" "}
+                    রক্ত দিতে চান?{" "}
                     <a href="/register" className="text-white hover:text-primary transition-colors font-medium">
                       Register as Donor
                     </a>

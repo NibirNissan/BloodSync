@@ -150,13 +150,13 @@ export default function Register() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-primary text-xs font-medium mb-5">
             <Sparkles className="w-3.5 h-3.5" />
-            Join 1,000+ heroes saving lives
+            <span><span className="font-en">১,০০০+</span> জীবন রক্ষাকারীর সাথে যোগ দিন</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-3">
-            Become a <span className="glow-red-text">Donor</span>
+            <span className="glow-red-text">ডোনার</span> হিসেবে নিবন্ধন করুন
           </h1>
           <p className="text-gray-400 max-w-md mx-auto">
-            Your blood could save up to three lives. It takes less than two minutes.
+            আপনার রক্ত তিনটি পর্যন্ত জীবন বাঁচাতে পারে। সময় লাগে দুই মিনিটেরও কম।
           </p>
         </motion.div>
 
@@ -176,11 +176,11 @@ export default function Register() {
                   <FormItem>
                     <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
                       <User className="w-3.5 h-3.5 text-gray-500" />
-                      Full Name
+                      সম্পূর্ণ নাম
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="e.g. Rahul Islam"
+                        placeholder="যেমন: রাহুল ইসলাম"
                         className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
                         {...field}
                       />
@@ -226,7 +226,7 @@ export default function Register() {
                       <FormControl>
                         <Input
                           type="password"
-                          placeholder="At least 6 characters"
+                          placeholder="কমপক্ষে ৬ অক্ষর"
                           autoComplete="new-password"
                           className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
                           {...field}
@@ -247,12 +247,12 @@ export default function Register() {
                     <FormItem>
                       <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
                         <Droplet className="w-3.5 h-3.5 text-primary" fill="currentColor" />
-                        Blood Group
+                        রক্তের গ্রুপ
                       </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary">
-                            <SelectValue placeholder="Select blood group" />
+                            <SelectValue placeholder="গ্রুপ নির্বাচন করুন" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white">
@@ -275,12 +275,12 @@ export default function Register() {
                     <FormItem>
                       <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
                         <MapPin className="w-3.5 h-3.5 text-gray-500" />
-                        District / Area
+                        জেলা/এলাকা
                       </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary">
-                            <SelectValue placeholder="Select district" />
+                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-h-72">
@@ -303,7 +303,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
                       <Phone className="w-3.5 h-3.5 text-gray-500" />
-                      WhatsApp Number
+                      WhatsApp নম্বর
                     </FormLabel>
                     <FormControl>
                       <div className="relative flex items-center">
@@ -318,7 +318,7 @@ export default function Register() {
                       </div>
                     </FormControl>
                     <FormDescription className="text-gray-500 text-xs">
-                      Recipients will message you here in emergencies.
+                      জরুরি অবস্থায় গ্রহীতারা এই নম্বরেই আপনাকে বার্তা পাঠাবেন।
                     </FormDescription>
                     <FormMessage className="text-red-400 text-xs" />
                   </FormItem>
@@ -333,7 +333,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
                       <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                      Last Donation Date <span className="text-gray-600 font-normal text-xs">(Optional)</span>
+                      সর্বশেষ রক্তদানের তারিখ <span className="text-gray-600 font-normal text-xs">(ঐচ্ছিক)</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -343,7 +343,7 @@ export default function Register() {
                       />
                     </FormControl>
                     <FormDescription className="text-gray-500 text-xs">
-                      Donors typically need 3 months between donations.
+                      দুই দানের মধ্যে সাধারণত <span className="font-en">৩</span> মাস বিরতি প্রয়োজন।
                     </FormDescription>
                   </FormItem>
                 )}
@@ -353,7 +353,7 @@ export default function Register() {
               <div className="space-y-2">
                 <Label className="text-gray-300 text-sm flex items-center gap-2">
                   <Cigarette className="w-3.5 h-3.5 text-gray-500" />
-                  Smoking Status
+                  ধূমপানের তথ্য
                 </Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -366,7 +366,7 @@ export default function Register() {
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4" />
-                    <span className="text-sm font-medium">Non-Smoker</span>
+                    <span className="text-sm font-medium">অধূমপায়ী</span>
                   </button>
                   <button
                     type="button"
@@ -378,10 +378,10 @@ export default function Register() {
                     }`}
                   >
                     <Cigarette className="w-4 h-4" />
-                    <span className="text-sm font-medium">Smoker</span>
+                    <span className="text-sm font-medium">ধূমপায়ী</span>
                   </button>
                 </div>
-                <p className="text-xs text-gray-600">For medical transparency only. Smokers can still donate.</p>
+                <p className="text-xs text-gray-600">শুধু চিকিৎসাগত স্বচ্ছতার জন্য। ধূমপায়ীরাও রক্ত দিতে পারেন।</p>
               </div>
 
               {/* Submit Button — vibrant red glow */}
@@ -405,7 +405,7 @@ export default function Register() {
                   )}
                 </Button>
                 <p className="text-center text-xs text-gray-600 mt-3">
-                  By registering, you agree to be contacted by people in genuine medical emergencies.
+                  নিবন্ধন করার মাধ্যমে আপনি প্রকৃত চিকিৎসা জরুরি অবস্থায় যোগাযোগ গ্রহণে সম্মত হচ্ছেন।
                 </p>
               </div>
 
@@ -418,11 +418,11 @@ export default function Register() {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
           className="mt-6 flex items-center justify-center gap-6 text-xs text-gray-600"
         >
-          <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500/60" /> Privacy-first</span>
+          <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500/60" /> গোপনীয়তা সর্বাগ্রে</span>
           <span className="w-1 h-1 rounded-full bg-gray-700" />
-          <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-primary/60" /> Free forever</span>
+          <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-primary/60" /> চিরকাল ফ্রি</span>
           <span className="w-1 h-1 rounded-full bg-gray-700" />
-          <span className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-pink-500/60" /> No spam</span>
+          <span className="flex items-center gap-1.5"><Heart className="w-3.5 h-3.5 text-pink-500/60" /> কোনো স্প্যাম নয়</span>
         </motion.div>
       </div>
     </div>

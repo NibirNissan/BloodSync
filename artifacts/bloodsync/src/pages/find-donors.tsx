@@ -556,13 +556,13 @@ export default function FindDonors() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-primary text-xs font-medium mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            No login required
+            লগইন ছাড়াই খুঁজুন
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-3">
-            Find <span className="glow-red-text">Blood Donors</span>
+            <span className="glow-red-text">রক্তদাতা</span> খুঁজুন
           </h1>
           <p className="text-gray-400 max-w-2xl">
-            Search verified donors in your area. Their privacy is protected — contact details stay hidden until you send a request.
+            আপনার এলাকার যাচাইকৃত ডোনারদের অনুসন্ধান করুন। তাঁদের গোপনীয়তা সুরক্ষিত — যতক্ষণ না আপনি অনুরোধ পাঠাচ্ছেন, যোগাযোগের তথ্য আড়ালে থাকে।
           </p>
         </motion.div>
 
@@ -579,17 +579,17 @@ export default function FindDonors() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Blood Group */}
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-500 uppercase tracking-[0.18em] font-medium flex items-center gap-1.5">
+                <label className="text-xs text-gray-300 tracking-wide font-medium flex items-center gap-1.5">
                   <Droplet className="w-3 h-3 text-primary" fill="currentColor" />
-                  Blood Group
+                  রক্তের গ্রুপ
                 </label>
                 <Select value={bloodGroup} onValueChange={setBloodGroup}>
                   <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary">
-                    <SelectValue placeholder="Any blood group" />
+                    <SelectValue placeholder="যেকোনো গ্রুপ" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white">
                     <SelectItem value="all">
-                      <span className="text-gray-400">Any blood group</span>
+                      <span className="text-gray-400">যেকোনো গ্রুপ</span>
                     </SelectItem>
                     {BLOOD_GROUPS.map((bg) => (
                       <SelectItem key={bg} value={bg}>
@@ -602,17 +602,17 @@ export default function FindDonors() {
 
               {/* Location / District */}
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-500 uppercase tracking-[0.18em] font-medium flex items-center gap-1.5">
+                <label className="text-xs text-gray-300 tracking-wide font-medium flex items-center gap-1.5">
                   <MapPin className="w-3 h-3 text-gray-500" />
-                  Location
+                  জেলা/এলাকা
                 </label>
                 <Select value={district} onValueChange={setDistrict}>
                   <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary">
-                    <SelectValue placeholder="All districts" />
+                    <SelectValue placeholder="সকল জেলা" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-h-72">
                     <SelectItem value="all">
-                      <span className="text-gray-400">All districts</span>
+                      <span className="text-gray-400">সকল জেলা</span>
                     </SelectItem>
                     {DISTRICTS.map((d) => (
                       <SelectItem key={d} value={d}>{d}</SelectItem>
@@ -623,9 +623,9 @@ export default function FindDonors() {
 
               {/* Availability Toggle */}
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-500 uppercase tracking-[0.18em] font-medium flex items-center gap-1.5">
+                <label className="text-xs text-gray-300 tracking-wide font-medium flex items-center gap-1.5">
                   <Heart className="w-3 h-3 text-emerald-500" fill="currentColor" />
-                  Availability
+                  প্রাপ্যতা
                 </label>
                 <div className={`flex items-center justify-between gap-3 px-4 h-12 rounded-xl border transition-all ${
                   onlyAvailable
@@ -633,7 +633,7 @@ export default function FindDonors() {
                     : "bg-white/5 border-white/10"
                 }`}>
                   <span className={`text-sm font-medium ${onlyAvailable ? "text-emerald-300" : "text-gray-400"}`}>
-                    Willing to Donate Only
+                    শুধু ইচ্ছুক ডোনার
                   </span>
                   <Switch
                     checked={onlyAvailable}
@@ -649,7 +649,7 @@ export default function FindDonors() {
               <div className="flex items-center gap-2 text-sm text-gray-400 flex-wrap">
                 <SlidersHorizontal className="w-3.5 h-3.5 text-gray-600" />
                 <span>
-                  Showing <span className="text-white font-semibold">{filtered.length}</span> of <span className="text-white font-semibold">{allDonors?.length ?? 0}</span> donors
+                  <span className="text-white font-semibold font-en">{filtered.length}</span> জন দেখানো হচ্ছে — মোট <span className="text-white font-semibold font-en">{allDonors?.length ?? 0}</span>
                 </span>
                 {bloodGroup !== "all" && (
                   <span className="inline-flex items-center text-xs text-primary bg-primary/10 border border-primary/25 px-2 py-0.5 rounded-full font-semibold">
@@ -663,7 +663,7 @@ export default function FindDonors() {
                 )}
                 {onlyAvailable && (
                   <span className="inline-flex items-center text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                    Available
+                    ইচ্ছুক
                   </span>
                 )}
               </div>
@@ -672,7 +672,7 @@ export default function FindDonors() {
                   onClick={clearAll}
                   className="text-xs text-gray-500 hover:text-primary flex items-center gap-1.5 transition-colors"
                 >
-                  <X className="w-3 h-3" /> Reset filters
+                  <X className="w-3 h-3" /> ফিল্টার রিসেট করুন
                 </button>
               )}
             </div>
@@ -696,18 +696,18 @@ export default function FindDonors() {
                 ? <Search className="w-7 h-7 text-gray-600" />
                 : <Users className="w-7 h-7 text-gray-600" />}
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">No donors found</h3>
+            <h3 className="text-2xl font-bold text-white mb-2">কোনো ডোনার পাওয়া যায়নি</h3>
             <p className="text-gray-400 mb-6 max-w-sm mx-auto">
               {hasActiveFilters
-                ? "Try broadening your filters — change the blood group or include unavailable donors."
-                : "No donors are registered yet. Be the first to join!"}
+                ? "ফিল্টার একটু শিথিল করে দেখুন — অন্য রক্তের গ্রুপ বেছে নিন অথবা অপ্রাপ্য ডোনারদেরও যুক্ত করুন।"
+                : "এখনো কোনো ডোনার নিবন্ধিত হননি। প্রথম হোন আপনি!"}
             </p>
             {hasActiveFilters && (
               <Button
                 onClick={clearAll}
                 className="bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 rounded-xl"
               >
-                <X className="w-4 h-4 mr-2" /> Clear All Filters
+                <X className="w-4 h-4 mr-2" /> সব ফিল্টার মুছুন
               </Button>
             )}
           </motion.div>

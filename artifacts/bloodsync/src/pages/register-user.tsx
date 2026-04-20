@@ -60,10 +60,10 @@ export default function RegisterUser() {
             <UserPlus className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">
-            Create your account
+            আপনার অ্যাকাউন্ট তৈরি করুন
           </h1>
           <p className="text-gray-400 text-sm">
-            Track the blood requests you make from one place.
+            আপনার সব রক্তের অনুরোধ এক জায়গায় ট্র্যাক করুন।
           </p>
         </div>
 
@@ -72,11 +72,11 @@ export default function RegisterUser() {
             <div className="space-y-2">
               <Label htmlFor="fullName" className="text-gray-300 text-sm flex items-center gap-2">
                 <User className="w-3.5 h-3.5 text-gray-500" />
-                Full Name
+                সম্পূর্ণ নাম
               </Label>
               <Input
                 id="fullName" value={fullName} onChange={e => setFullName(e.target.value)}
-                placeholder="e.g. Sara Ahmed" required minLength={2}
+                placeholder="যেমন: সারা আহমেদ" required minLength={2}
                 className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
               />
             </div>
@@ -100,7 +100,7 @@ export default function RegisterUser() {
               <Input
                 id="password" type="password" autoComplete="new-password"
                 value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="At least 6 characters" required minLength={6}
+                placeholder="কমপক্ষে ৬ অক্ষর" required minLength={6}
                 className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
               />
             </div>
@@ -113,7 +113,7 @@ export default function RegisterUser() {
               ) : "Create Account"}
             </Button>
             <p className="text-center text-sm text-gray-500">
-              Already have an account?{" "}
+              ইতিমধ্যে অ্যাকাউন্ট আছে?{" "}
               <a href="/login" className="text-white hover:text-primary transition-colors font-medium">
                 Sign in
               </a>

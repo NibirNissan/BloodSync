@@ -715,11 +715,11 @@ export default function DonorDashboard() {
           className="flex items-start justify-between flex-wrap gap-4 mb-10"
         >
           <div>
-            <p className="text-xs text-primary uppercase tracking-[0.25em] font-semibold mb-2">Donor Dashboard</p>
+            <p className="text-xs text-primary uppercase tracking-[0.25em] font-semibold font-en mb-2">Donor Dashboard</p>
             <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-              Welcome back, <span className="glow-red-text">{donor.name.split(" ")[0]}</span>
+              আবার স্বাগতম, <span className="glow-red-text font-en">{donor.name.split(" ")[0]}</span>
             </h1>
-            <p className="text-gray-400 mt-2">Manage your donor profile and track your impact</p>
+            <p className="text-gray-400 mt-2">আপনার ডোনার প্রোফাইল পরিচালনা করুন এবং আপনার অবদান দেখুন</p>
           </div>
           <button
             onClick={handleSignOut}
@@ -817,8 +817,8 @@ export default function DonorDashboard() {
             <div className="absolute -top-16 -right-16 w-48 h-48 bg-purple-500/10 blur-3xl rounded-full pointer-events-none" />
             <div className="relative flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-[0.18em] font-medium mb-2">Profile Requests Received</p>
-                <p className="text-5xl font-black text-white tabular-nums">{donor.total_requests_received}</p>
+                <p className="text-xs text-gray-400 tracking-wide font-medium mb-2">প্রাপ্ত অনুরোধ</p>
+                <p className="text-5xl font-black text-white tabular-nums font-en">{donor.total_requests_received}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
                 <PhoneCall className="w-5 h-5 text-purple-400" />
@@ -839,8 +839,8 @@ export default function DonorDashboard() {
             <div className="absolute -top-16 -right-16 w-48 h-48 bg-primary/15 blur-3xl rounded-full pointer-events-none" />
             <div className="relative flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-[0.18em] font-medium mb-2">Verified Donations</p>
-                <p className="text-5xl font-black glow-red-text tabular-nums">{donor.successful_donations}</p>
+                <p className="text-xs text-gray-400 tracking-wide font-medium mb-2">যাচাইকৃত রক্তদান</p>
+                <p className="text-5xl font-black glow-red-text tabular-nums font-en">{donor.successful_donations}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5 text-primary" />

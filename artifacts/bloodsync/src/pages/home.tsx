@@ -15,48 +15,48 @@ export default function Home() {
   const features = [
     {
       icon: Search,
-      title: "Dynamic Donor Search",
-      desc: "Filter live by blood group and district. Reach available donors in seconds when emergencies strike — no waiting, no hospitals in between.",
+      title: "তাৎক্ষণিক ডোনার অনুসন্ধান",
+      desc: "রক্তের গ্রুপ ও জেলা অনুযায়ী সরাসরি ফিল্টার করুন। জরুরি মুহূর্তে কয়েক সেকেন্ডেই কাছের ডোনারের সাথে সংযোগ — কোনো অপেক্ষা নয়, কোনো মধ্যস্থতা নয়।",
       accent: "text-blue-400",
       bg: "bg-blue-500/10",
       border: "border-blue-500/20",
     },
     {
       icon: BarChart3,
-      title: "Global Statistics",
-      desc: "Transparent, real-time metrics on donor activity, requests, and verified donations across every region we serve.",
+      title: "সমন্বিত পরিসংখ্যান",
+      desc: "প্রতিটি অঞ্চলের ডোনার কার্যক্রম, অনুরোধ ও যাচাইকৃত রক্তদানের স্বচ্ছ ও রিয়েল-টাইম পরিসংখ্যান।",
       accent: "text-amber-400",
       bg: "bg-amber-500/10",
       border: "border-amber-500/20",
     },
     {
       icon: Zap,
-      title: "Instant WhatsApp Connect",
-      desc: "Skip the call center. A pre-filled WhatsApp message gets you talking to a donor directly within seconds of your request.",
+      title: "তাৎক্ষণিক WhatsApp যোগাযোগ",
+      desc: "কল সেন্টারের ঝামেলা নয়। অনুরোধের সাথে সাথে প্রস্তুত একটি WhatsApp বার্তা সরাসরি ডোনারের কাছে পৌঁছে যায়।",
       accent: "text-emerald-400",
       bg: "bg-emerald-500/10",
       border: "border-emerald-500/20",
     },
     {
       icon: ShieldCheck,
-      title: "Verified Donations",
-      desc: "Every donation is reviewed and approved by our admin team. Donors build a trustworthy public track record over time.",
+      title: "যাচাইকৃত রক্তদান",
+      desc: "প্রতিটি দান আমাদের অ্যাডমিন টিম পর্যালোচনা ও অনুমোদন করেন। সময়ের সাথে সাথে ডোনাররা গড়ে তোলেন বিশ্বস্ত পাবলিক রেকর্ড।",
       accent: "text-primary",
       bg: "bg-primary/10",
       border: "border-primary/25",
     },
     {
       icon: Heart,
-      title: "Donor-First Privacy",
-      desc: "Contact details stay hidden until a recipient explicitly requests them. Donors stay in control of their visibility.",
+      title: "ডোনারের গোপনীয়তা সর্বাগ্রে",
+      desc: "যতক্ষণ না কেউ স্পষ্টভাবে অনুরোধ করেন, ডোনারের যোগাযোগের তথ্য গোপন থাকে। তাঁদের দৃশ্যমানতা তাঁদেরই নিয়ন্ত্রণে।",
       accent: "text-pink-400",
       bg: "bg-pink-500/10",
       border: "border-pink-500/20",
     },
     {
       icon: MapPin,
-      title: "Hyperlocal Matching",
-      desc: "We prioritize donors closest to you, district by district. Faster matches mean faster lives saved.",
+      title: "স্থানীয় ভিত্তিতে মিল",
+      desc: "আমরা আপনার নিকটতম ডোনারদের অগ্রাধিকার দিই, জেলা ধরে ধরে। দ্রুত মিল মানেই দ্রুত জীবন রক্ষা।",
       accent: "text-purple-400",
       bg: "bg-purple-500/10",
       border: "border-purple-500/20",
@@ -64,9 +64,9 @@ export default function Home() {
   ];
 
   const liveStats = [
-    { label: "Active Donors", value: stats?.willing_donors, icon: Users, color: "text-blue-400" },
-    { label: "Lives Impacted", value: stats?.completed_donations, icon: Droplet, color: "text-primary" },
-    { label: "Requests Handled", value: stats?.total_requests, icon: ShieldCheck, color: "text-emerald-400" },
+    { label: "সক্রিয় ডোনার", value: stats?.willing_donors, icon: Users, color: "text-blue-400" },
+    { label: "রক্ষিত জীবন", value: stats?.completed_donations, icon: Droplet, color: "text-primary" },
+    { label: "সম্পন্ন অনুরোধ", value: stats?.total_requests, icon: ShieldCheck, color: "text-emerald-400" },
   ];
 
   return (
@@ -83,23 +83,23 @@ export default function Home() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
             </span>
-            Urgent need for blood donors
+            জরুরিভাবে রক্তদাতা প্রয়োজন
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
             className="text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] max-w-6xl"
           >
-            <span className="text-white">Be the lifeline</span>
+            <span className="text-white">কারো জীবনের</span>
             <br />
-            <span className="glow-red-text">someone needs today.</span>
+            <span className="glow-red-text">স্পন্দন হোন আজই।</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg md:text-xl text-gray-400 max-w-2xl leading-relaxed"
           >
-            Connect directly with people in medical emergencies. Every donation can save up to three lives. Register today or find a donor near you.
+            চিকিৎসা জরুরি অবস্থায় সরাসরি মানুষের সাথে যুক্ত হোন। প্রতিটি দান সর্বোচ্চ তিনটি জীবন বাঁচাতে পারে। আজই নিবন্ধন করুন অথবা আপনার কাছাকাছি একজন ডোনার খুঁজুন।
           </motion.p>
 
           <motion.div
@@ -141,10 +141,10 @@ export default function Home() {
               <div className={`inline-flex w-11 h-11 rounded-2xl ${s.color.replace("text", "bg")}/10 border border-white/10 items-center justify-center mb-3`}>
                 <s.icon className={`w-5 h-5 ${s.color}`} />
               </div>
-              <p className="text-5xl font-black text-white tabular-nums">
+              <p className="text-5xl font-black text-white tabular-nums font-en">
                 {isLoading ? <span className="text-gray-700">—</span> : s.value ?? 0}
               </p>
-              <p className="text-xs text-gray-500 uppercase tracking-[0.18em] mt-2 font-medium">{s.label}</p>
+              <p className="text-xs text-gray-400 tracking-wide mt-2 font-medium">{s.label}</p>
             </div>
           ))}
         </motion.div>
@@ -159,9 +159,9 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <p className="text-xs text-primary uppercase tracking-[0.25em] font-semibold mb-3">What we do</p>
+          <p className="text-xs text-primary uppercase tracking-[0.25em] font-semibold font-en mb-3">What we do</p>
           <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto">
-            A platform built around <span className="glow-red-text">life</span>.
+            <span className="glow-red-text">জীবনের</span> জন্য তৈরি একটি প্ল্যাটফর্ম।
           </h2>
         </motion.div>
 
@@ -197,17 +197,17 @@ export default function Home() {
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/15 blur-[120px] rounded-full pointer-events-none" />
           <div className="relative">
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-tight">
-              Your blood type could be the only one available <span className="glow-red-text">when it matters most.</span>
+              যখন সবচেয়ে বেশি প্রয়োজন, <span className="glow-red-text">আপনার রক্তের গ্রুপই</span> হতে পারে একমাত্র উপায়।
             </h2>
             <p className="text-gray-400 mt-5 max-w-xl mx-auto">
-              Join thousands of donors quietly saving lives across their cities. It takes less than two minutes to register.
+              শহরে শহরে নীরবে জীবন বাঁচাচ্ছেন এমন হাজারো ডোনারের সাথে যোগ দিন। নিবন্ধনে সময় লাগে দুই মিনিটেরও কম।
             </p>
             <Link href="/register">
               <Button
                 size="lg"
                 className="mt-8 btn-glow-red text-white text-base h-14 px-10 rounded-2xl font-semibold border-0 group"
               >
-                Become a Donor
+                Register as Donor
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>

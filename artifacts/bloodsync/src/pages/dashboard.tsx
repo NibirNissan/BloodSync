@@ -913,12 +913,12 @@ export default function Dashboard() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-3">
               <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs text-primary uppercase tracking-[0.25em] font-bold">Super Admin</p>
+              <p className="text-xs text-primary uppercase tracking-[0.25em] font-bold font-en">Super Admin</p>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-              Command <span className="glow-red-text">Center</span>
+              নিয়ন্ত্রণ <span className="glow-red-text">কেন্দ্র</span>
             </h1>
-            <p className="text-gray-400 mt-2 text-base">Full operational control over the BloodSync platform</p>
+            <p className="text-gray-400 mt-2 text-base">BloodSync প্ল্যাটফর্মের পূর্ণ পরিচালনা নিয়ন্ত্রণ</p>
           </div>
           <button
             onClick={logout}

@@ -101,7 +101,7 @@ export default function UserProfile() {
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-                Hi, {displayName}
+                স্বাগতম, <span className="font-en">{displayName}</span>
               </h1>
               <p className="text-gray-400 text-sm">{user.email}</p>
             </div>
@@ -110,15 +110,15 @@ export default function UserProfile() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <StatCard label="Total Requests" value={total} icon={<Search className="w-5 h-5" />} accent="text-white" />
-          <StatCard label="Fulfilled" value={fulfilled} icon={<CheckCircle2 className="w-5 h-5" />} accent="text-emerald-300" />
-          <StatCard label="Pending" value={pending} icon={<Clock className="w-5 h-5" />} accent="text-amber-300" />
+          <StatCard label="মোট অনুরোধ" value={total} icon={<Search className="w-5 h-5" />} accent="text-white" />
+          <StatCard label="সম্পন্ন" value={fulfilled} icon={<CheckCircle2 className="w-5 h-5" />} accent="text-emerald-300" />
+          <StatCard label="অপেক্ষমাণ" value={pending} icon={<Clock className="w-5 h-5" />} accent="text-amber-300" />
         </div>
 
         {/* Requests list */}
         <GlassCard className="p-6 md:p-8">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-bold text-white">My Blood Requests</h2>
+            <h2 className="text-xl font-bold text-white">আমার রক্তের অনুরোধ</h2>
             <Button
               onClick={() => setLocation("/find-donors")}
               className="h-9 px-4 rounded-full text-sm font-semibold btn-glow-red text-white border-0"
@@ -131,8 +131,8 @@ export default function UserProfile() {
           {total === 0 ? (
             <div className="text-center py-12">
               <AlertCircle className="w-10 h-10 text-gray-500 mx-auto mb-3" />
-              <p className="text-gray-400 mb-1">You haven't made any requests yet.</p>
-              <p className="text-gray-500 text-sm mb-5">Search for donors to make your first request.</p>
+              <p className="text-gray-400 mb-1">আপনি এখনো কোনো অনুরোধ করেননি।</p>
+              <p className="text-gray-500 text-sm mb-5">প্রথম অনুরোধ করতে ডোনার অনুসন্ধান করুন।</p>
               <Button
                 onClick={() => setLocation("/find-donors")}
                 className="btn-glow-red text-white border-0 rounded-xl"
@@ -156,7 +156,7 @@ export default function UserProfile() {
                         <span className="text-white font-semibold truncate">
                           {d ? d.name : `Donor #${r.donor_id}`}
                         </span>
-                        <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border ${statusInfo.cls}`}>
+                        <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border font-en ${statusInfo.cls}`}>
                           {statusInfo.label}
                         </span>
                       </div>

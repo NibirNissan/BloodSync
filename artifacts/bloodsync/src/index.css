@@ -5,6 +5,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Bilingual typography:
+     - font-bn (Hind Siliguri) is the default for body content (Bengali).
+     - font-en (Poppins) is used for buttons, numbers, and English actions.
+     Both fonts share Latin glyphs so they fall back to each other gracefully. */
+  --font-sans: "Hind Siliguri", "Poppins", system-ui, -apple-system, sans-serif;
+  --font-bn:   "Hind Siliguri", "Poppins", system-ui, -apple-system, sans-serif;
+  --font-en:   "Poppins", "Hind Siliguri", system-ui, -apple-system, sans-serif;
+
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-border: hsl(var(--border));
@@ -106,6 +114,25 @@
     background-color: #0a0a0c;
     min-height: 100dvh;
     overflow-x: hidden;
+    /* Bengali content default — Hind Siliguri renders Bengali beautifully and
+       falls through to Poppins for any embedded Latin characters. */
+    font-family: var(--font-bn);
+    font-feature-settings: "ss01", "kern";
+  }
+
+  /* Buttons, numbers, and form inputs use Poppins by default so all standard
+     UI actions (Login, Register, blood groups like A+/O-, phone numbers,
+     timestamps) render in the English action font. Bengali characters in
+     these elements still fall through to Hind Siliguri. */
+  button,
+  input,
+  select,
+  textarea,
+  code,
+  kbd,
+  .font-en,
+  .tabular-nums {
+    font-family: var(--font-en);
   }
 }
 
