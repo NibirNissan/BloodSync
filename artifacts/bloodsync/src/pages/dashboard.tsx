@@ -33,7 +33,7 @@ import {
   LayoutDashboard, UserCog, ClipboardList,
   Plus, Pencil, Trash2, X, ChevronDown, Search, Building2,
   Phone, MapPin, Calendar, TrendingUp, LogOut, Loader2,
-  ThumbsUp, ThumbsDown, FileImage, KeyRound, Newspaper,
+  ThumbsUp, ThumbsDown, FileImage, KeyRound, Newspaper, Eye,
 } from "lucide-react";
 import { BlogManagement } from "@/components/BlogManagement";
 import { format } from "date-fns";
