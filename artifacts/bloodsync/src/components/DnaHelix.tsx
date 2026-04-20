@@ -176,8 +176,11 @@ function HelixGroup() {
   useFrame((_, delta) => {
     if (!group.current) return;
 
+    // Smooth lerp toward the live scroll position. Capping the alpha at
+    // 1 keeps the motion stable when delta spikes after a tab refocus.
     targetScroll.current = typeof window !== "undefined" ? window.scrollY : 0;
-    scrollRef.current += (targetScroll.current - scrollRef.current) * Math.min(delta * 6, 1);
+    const alpha = Math.min(delta * 5, 1);
+    scrollRef.current += (targetScroll.current - scrollRef.current) * alpha;
 
     const scrollNorm = scrollRef.current / Math.max(window.innerHeight, 1);
     const t = performance.now() * 0.001;

@@ -73,8 +73,17 @@ export default function UserProfile() {
   }, [donors]);
 
   useEffect(() => {
-    if (!authLoading && !user) setLocation("/login");
-  }, [authLoading, user, setLocation]);
+    if (authLoading) return;
+    if (!user) { setLocation("/login"); return; }
+    // Hard guard: if profile says admin/donor, do NOT render this page —
+    // bounce to the correct dashboard immediately.
+    if (profile?.role === "admin")  { setLocation("/admin", { replace: true }); return; }
+    if (profile?.role === "donor")  { setLocation("/donor-dashboard", { replace: true }); return; }
+  }, [authLoading, user, profile, setLocation]);
+
+  // While we know the user is admin/donor, render nothing — the redirect
+  // above is already running, so a spinner would just look like a stall.
+  if (profile?.role === "admin" || profile?.role === "donor") return null;
 
   if (authLoading) {
     return (
