@@ -42,37 +42,88 @@ export function BlogManagement() {
     },
   });
 
-  const createBlog = useMutation({
-    mutationFn: async () => {
+  // Manual loading state instead of useMutation so we have full control
+  // over the spinner — guaranteed to flip false in `finally`, and a
+  // 12-second hard timeout below ensures it can never hang forever.
+  const [submitting, setSubmitting] = useState(false);
+
+  const handlePublish = async () => {
+    // ── Per-field validation: surface the FIRST empty field as a toast.
+    const t = title.trim();
+    const ex = excerpt.trim();
+    const c = content.trim();
+    if (!t)  { toast({ variant: "destructive", title: "Title is required" }); return; }
+    if (!ex) { toast({ variant: "destructive", title: "Excerpt is required" }); return; }
+    if (!c)  { toast({ variant: "destructive", title: "Content is required" }); return; }
+
+    // ── Author identity check: must be a signed-in user.
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Not signed in",
+        description: "Sign in as an admin before publishing a blog.",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    // 12 s hard safety timeout so the spinner can never get stuck.
+    const timeoutId = window.setTimeout(() => {
+      setSubmitting(false);
+      toast({
+        variant: "destructive",
+        title: "Publish timed out",
+        description: "Supabase did not respond in 12 seconds. Check network / RLS and try again.",
+      });
+    }, 12000);
+
+    try {
+      // `author_uid` is the column name in the blogs table — it stores
+      // the current logged-in admin's auth user id (auth.uid()).
+      const payload = {
+        title: t,
+        excerpt: ex,
+        content: c,
+        cover_url: coverUrl.trim() || null,
+        is_published: true,
+        author_uid: user.id,
+      };
+
       const { data, error } = await supabase
         .from("blogs")
-        .insert({
-          title: title.trim(),
-          excerpt: excerpt.trim(),
-          content: content.trim(),
-          cover_url: coverUrl.trim() || null,
-          is_published: true,
-          author_uid: user?.id ?? null,
-        })
+        .insert(payload)
         .select()
         .single();
+
       if (error) throw error;
-      return data as Blog;
-    },
-    onSuccess: () => {
-      toast({ title: "Blog published", description: "নতুন ব্লগটি তালিকায় যোগ হয়েছে।" });
+
+      // Clear form fields.
       setTitle(""); setExcerpt(""); setContent(""); setCoverUrl("");
       setOpen(false);
+
+      // Refresh the Manage Blogs list AND every public blog view so the
+      // new post appears immediately on the home & blog index pages.
+      await queryClient.invalidateQueries({ queryKey: BLOGS_QUERY_KEY });
       invalidatePublicBlogs(queryClient);
-    },
-    onError: (e: any) => {
+
+      toast({
+        title: "Blog published",
+        description: data?.title ? `"${data.title}" is now live.` : "নতুন ব্লগটি তালিকায় যোগ হয়েছে।",
+      });
+    } catch (e: any) {
+      // Show the EXACT Supabase error string for debugging.
+      console.error("[blog] publish failed:", e);
       toast({
         variant: "destructive",
         title: "Failed to publish",
-        description: e?.message ?? "Could not save blog.",
+        description: e?.message || e?.hint || JSON.stringify(e) || "Could not save blog.",
       });
-    },
-  });
+    } finally {
+      window.clearTimeout(timeoutId);
+      setSubmitting(false);
+    }
+  };
 
   const togglePublish = useMutation({
     mutationFn: async (b: Blog) => {
@@ -97,9 +148,6 @@ export function BlogManagement() {
       invalidatePublicBlogs(queryClient);
     },
   });
-
-  const canSubmit =
-    title.trim().length > 2 && excerpt.trim().length > 5 && content.trim().length > 10;
 
   return (
     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8">
@@ -131,7 +179,7 @@ export function BlogManagement() {
             transition={{ duration: 0.25 }}
             onSubmit={(e) => {
               e.preventDefault();
-              if (canSubmit) createBlog.mutate();
+              handlePublish();
             }}
             className="overflow-hidden"
           >
@@ -182,10 +230,10 @@ export function BlogManagement() {
 
               <Button
                 type="submit"
-                disabled={!canSubmit || createBlog.isPending}
+                disabled={submitting}
                 className="w-full btn-glow-red text-white border-0 rounded-xl h-11 gap-2"
               >
-                {createBlog.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 Publish Blog
               </Button>
             </div>
