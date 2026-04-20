@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/select";
 import {
   useGetStatsSummary, getGetStatsSummaryQueryKey,
-  useGetBloodGroupStats, getGetBloodGroupStatsQueryKey,
   useListDonors, getListDonorsQueryKey,
   useCreateDonor,
   useUpdateDonor,
@@ -255,6 +254,73 @@ function DonorFormModal({
   );
 }
 
+// ─── Donor Details (View) ────────────────────────────────────────────────────
+function DonorDetailsModal({ donor, onClose }: { donor: DonorRecord; onClose: () => void }) {
+  const fields: Array<{ icon: React.ElementType; label: string; value: string | number; accent?: string }> = [
+    { icon: Droplet, label: "Blood Group", value: donor.blood_group, accent: "text-primary" },
+    { icon: MapPin, label: "District", value: donor.district },
+    { icon: Phone, label: "WhatsApp", value: donor.whatsapp_number },
+    { icon: Activity, label: "Lifestyle", value: donor.smoker ? "Smoker" : "Non-smoker" },
+    { icon: CheckCircle2, label: "Availability", value: donor.is_willing_to_donate ? "Active — willing to donate" : "Unavailable", accent: donor.is_willing_to_donate ? "text-emerald-400" : "text-gray-500" },
+    { icon: Calendar, label: "Last Donation", value: donor.last_donation_date ? format(new Date(donor.last_donation_date), "PPP") : "Never recorded" },
+    { icon: AlertCircle, label: "Requests Received", value: donor.total_requests_received },
+    { icon: ShieldCheck, label: "Verified Donations", value: donor.successful_donations, accent: "text-primary" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative w-full max-w-lg"
+      >
+        <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_60px_rgba(0,0,0,0.6)] overflow-hidden">
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/15 blur-[100px] rounded-full pointer-events-none" />
+
+          {/* Header */}
+          <div className="relative flex items-start justify-between mb-5">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/5 border border-primary/30 flex items-center justify-center shadow-[0_0_25px_rgba(220,38,38,0.25)]">
+                <span className="text-2xl font-black text-white" style={{ textShadow: "0 0 15px rgba(239,68,68,0.6)" }}>
+                  {donor.blood_group}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">{donor.name}</h3>
+                <p className="text-xs text-gray-500">Donor ID #{donor.id} · since {format(new Date(donor.created_at), "MMM yyyy")}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Field grid */}
+          <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {fields.map((f) => (
+              <div key={f.label} className="flex items-start gap-3 p-3 bg-white/[0.03] border border-white/10 rounded-xl">
+                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <f.icon className="w-3.5 h-3.5 text-gray-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.15em] text-gray-500 font-semibold">{f.label}</p>
+                  <p className={`text-sm font-medium truncate ${f.accent ?? "text-white"}`}>{f.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative mt-5 pt-4 border-t border-white/5 text-xs text-gray-600 text-center">
+            Read-only view · use Edit to modify donor data
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Delete Confirm ───────────────────────────────────────────────────────────
 function DeleteConfirm({ name, onConfirm, onCancel, busy }: { name: string; onConfirm: () => void; onCancel: () => void; busy: boolean }) {
   return (
@@ -284,73 +350,80 @@ function DeleteConfirm({ name, onConfirm, onCancel, busy }: { name: string; onCo
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 function OverviewTab() {
   const { data: stats, isLoading: statsLoading } = useGetStatsSummary({ query: { queryKey: getGetStatsSummaryQueryKey() } });
-  const { data: bgStats } = useGetBloodGroupStats({ query: { queryKey: getGetBloodGroupStatsQueryKey() } });
 
   const statCards = [
-    { label: "Total Donors", value: stats?.total_donors, sub: `${stats?.willing_donors ?? "-"} actively willing`, icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
-    { label: "Total Requests", value: stats?.total_requests, sub: "Emergency contacts made", icon: AlertCircle, color: "text-purple-400", bg: "bg-purple-500/10" },
-    { label: "Verified Donations", value: stats?.completed_donations, sub: "Confirmed life-saving acts", icon: Droplet, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Pending Verifications", value: stats?.pending_verifications, sub: "Require admin review", icon: Clock, color: "text-amber-400", bg: "bg-amber-500/10" },
+    {
+      label: "Total Donors",
+      value: stats?.total_donors,
+      sub: `${stats?.willing_donors ?? 0} actively willing to donate`,
+      icon: Users,
+      accent: "from-blue-500/30 to-blue-500/0",
+      glow: "shadow-[0_0_50px_rgba(59,130,246,0.15)]",
+      iconBg: "bg-blue-500/15 border-blue-500/25",
+      iconColor: "text-blue-400",
+      ring: "border-blue-500/20",
+    },
+    {
+      label: "Total Requests Processed",
+      value: stats?.total_requests,
+      sub: "Emergency contacts made through platform",
+      icon: AlertCircle,
+      accent: "from-purple-500/30 to-purple-500/0",
+      glow: "shadow-[0_0_50px_rgba(168,85,247,0.15)]",
+      iconBg: "bg-purple-500/15 border-purple-500/25",
+      iconColor: "text-purple-400",
+      ring: "border-purple-500/20",
+    },
+    {
+      label: "Total Verified Donations",
+      value: stats?.completed_donations,
+      sub: "Confirmed life-saving acts",
+      icon: Droplet,
+      accent: "from-primary/40 to-primary/0",
+      glow: "shadow-[0_0_50px_rgba(239,68,68,0.18)]",
+      iconBg: "bg-primary/15 border-primary/30",
+      iconColor: "text-primary",
+      ring: "border-primary/25",
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {statCards.map((card, i) => (
-          <motion.div key={card.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-            <GlassCard className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{card.label}</p>
-                  <p className="text-3xl font-black text-white">
-                    {statsLoading ? <span className="text-gray-700">—</span> : card.value}
-                  </p>
-                </div>
-                <div className={`w-9 h-9 rounded-full ${card.bg} flex items-center justify-center`}>
-                  <card.icon className={`w-4.5 h-4.5 ${card.color}`} />
-                </div>
-              </div>
-              <p className={`text-xs ${card.color} opacity-80`}>{card.sub}</p>
-            </GlassCard>
-          </motion.div>
-        ))}
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {statCards.map((card, i) => (
+        <motion.div
+          key={card.label}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.08 }}
+          className={`relative overflow-hidden bg-white/5 backdrop-blur-xl border ${card.ring} rounded-3xl p-6 ${card.glow}`}
+        >
+          {/* Ambient glow */}
+          <div className={`absolute -top-20 -right-20 w-48 h-48 bg-gradient-to-br ${card.accent} blur-3xl rounded-full pointer-events-none`} />
 
-      {/* Blood Group Breakdown */}
-      <GlassCard className="p-6">
-        <h3 className="text-base font-semibold text-white mb-5 flex items-center gap-2">
-          <Droplet className="w-4 h-4 text-primary" />
-          Donor Distribution by Blood Group
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {bgStats?.map((stat) => {
-            const pct = stats?.total_donors ? (stat.count / stats.total_donors) * 100 : 0;
-            return (
-              <div key={stat.blood_group} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-bold text-white">{stat.blood_group}</span>
-                  <span className="text-gray-500 text-xs">{stat.count}</span>
-                </div>
-                <div className="w-full h-1.5 bg-white/5 rounded-full">
-                  <div className="h-full bg-gradient-to-r from-red-700 to-primary rounded-full" style={{ width: `${pct}%` }} />
-                </div>
-                <p className="text-xs text-gray-600">{pct.toFixed(0)}% of total</p>
+          <div className="relative">
+            <div className="flex items-start justify-between mb-5">
+              <div className={`w-12 h-12 rounded-2xl border ${card.iconBg} flex items-center justify-center`}>
+                <card.icon className={`w-6 h-6 ${card.iconColor}`} />
               </div>
-            );
-          })}
-        </div>
-      </GlassCard>
-
-      {/* System status */}
-      <GlassCard className="p-4 flex items-center gap-3">
-        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <p className="text-sm text-gray-400">All systems operational</p>
-        <span className="ml-auto text-xs text-gray-600">{format(new Date(), "PPp")}</span>
-      </GlassCard>
+              {!statsLoading && (
+                <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 uppercase tracking-[0.2em] font-semibold mb-2">{card.label}</p>
+            <p className="text-5xl font-black text-white mb-2 tracking-tight">
+              {statsLoading ? <span className="text-gray-800">—</span> : (card.value ?? 0).toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-500">{card.sub}</p>
+          </div>
+        </motion.div>
+      ))}
     </div>
   );
 }
+
 
 // ─── Donors Tab ───────────────────────────────────────────────────────────────
 function DonorsTab() {
@@ -362,6 +435,7 @@ function DonorsTab() {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [editDonor, setEditDonor] = useState<DonorRecord | null>(null);
+  const [viewDonor, setViewDonor] = useState<DonorRecord | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -414,6 +488,13 @@ function DonorsTab() {
             onSuccess={handleModalSuccess}
           />
         )}
+        {viewDonor && (
+          <DonorDetailsModal
+            key="view"
+            donor={viewDonor}
+            onClose={() => setViewDonor(null)}
+          />
+        )}
         {deletingId && (
           <DeleteConfirm
             key="delete"
@@ -439,9 +520,9 @@ function DonorsTab() {
           </div>
           <Button
             onClick={() => setAddOpen(true)}
-            className="h-10 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shrink-0"
+            className="h-10 px-5 rounded-xl btn-glow-red text-white font-semibold border-0 shrink-0"
           >
-            <Plus className="w-4 h-4 mr-2" /> Add Donor
+            <Plus className="w-4 h-4 mr-2" /> Manual Add Donor
           </Button>
         </div>
 
@@ -510,16 +591,25 @@ function DonorsTab() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setViewDonor(donor)}
+                          title="View details"
+                          className="w-8 h-8 rounded-lg bg-blue-500/5 hover:bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-400 hover:text-blue-300 transition-all"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => setEditDonor(donor)}
+                          title="Edit donor"
                           className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeletingId(donor.id)}
-                          className="w-8 h-8 rounded-lg bg-red-500/5 hover:bg-red-500/15 border border-red-500/15 flex items-center justify-center text-red-500 hover:text-red-400 transition-all"
+                          title="Delete donor"
+                          className="w-8 h-8 rounded-lg bg-red-500/5 hover:bg-red-500/15 border border-red-500/20 flex items-center justify-center text-red-400 hover:text-red-300 transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -702,21 +792,21 @@ function VerificationsTab() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {v.verification_status === "pending" && (
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => handleAction(v, "verified")}
                               disabled={isLoading}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-400 text-xs font-medium transition-all disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-b from-emerald-500/30 to-emerald-600/10 hover:from-emerald-500/45 hover:to-emerald-600/20 border border-emerald-400/40 text-emerald-200 text-xs font-bold transition-all disabled:opacity-50 shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:shadow-[0_0_28px_rgba(16,185,129,0.6)]"
                             >
-                              {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsUp className="w-3 h-3" />}
+                              {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ThumbsUp className="w-3.5 h-3.5" />}
                               Approve
                             </button>
                             <button
                               onClick={() => handleAction(v, "rejected")}
                               disabled={isLoading}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 text-xs font-medium transition-all disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-b from-red-500/30 to-red-600/10 hover:from-red-500/45 hover:to-red-600/20 border border-red-400/40 text-red-200 text-xs font-bold transition-all disabled:opacity-50 shadow-[0_0_18px_rgba(239,68,68,0.35)] hover:shadow-[0_0_28px_rgba(239,68,68,0.6)]"
                             >
-                              <ThumbsDown className="w-3 h-3" />
+                              <ThumbsDown className="w-3.5 h-3.5" />
                               Reject
                             </button>
                           </div>
@@ -737,12 +827,11 @@ function VerificationsTab() {
   );
 }
 
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
+// ─── Main Dashboard — single full-width page ─────────────────────────────────
 export default function Dashboard() {
   const [authenticated, setAuthenticated] = useState(() => {
     return sessionStorage.getItem("bloodsync_admin") === "true";
   });
-  const [tab, setTab] = useState<Tab>("overview");
 
   const unlock = () => {
     sessionStorage.setItem("bloodsync_admin", "true");
@@ -756,64 +845,84 @@ export default function Dashboard() {
 
   if (!authenticated) return <AdminGate onUnlock={unlock} />;
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
-    { id: "donors", label: "Donors", icon: UserCog },
-    { id: "verifications", label: "Verification Queue", icon: ClipboardList },
-  ];
-
   return (
-    <div className="min-h-screen pt-24 pb-20">
-      <div className="container mx-auto px-4 md:px-6">
+    <div className="min-h-screen pt-28 pb-20 w-full px-6 sm:px-10 lg:px-16 relative overflow-hidden">
+      {/* Ambient red glow backdrop */}
+      <div className="pointer-events-none absolute -top-40 left-1/4 w-[700px] h-[700px] bg-primary/5 blur-[140px] rounded-full" />
+      <div className="pointer-events-none absolute top-1/2 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full" />
+
+      <div className="relative w-full space-y-10">
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between mb-8 flex-wrap gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-start justify-between flex-wrap gap-4"
+        >
           <div>
-            <p className="text-xs text-primary uppercase tracking-widest font-semibold mb-2">Super Admin</p>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Admin Dashboard</h1>
-            <p className="text-gray-400 mt-1">Full control over BloodSync platform</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-3">
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              <p className="text-xs text-primary uppercase tracking-[0.25em] font-bold">Super Admin</p>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+              Command <span className="glow-red-text">Center</span>
+            </h1>
+            <p className="text-gray-400 mt-2 text-base">Full operational control over the BloodSync platform</p>
           </div>
           <button
             onClick={logout}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-white border border-white/10 hover:border-white/20 px-4 py-2 rounded-xl transition-all bg-white/5 hover:bg-white/8"
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-4 py-2.5 rounded-full transition-all bg-white/[0.04] backdrop-blur-md hover:bg-white/[0.08]"
           >
             <LogOut className="w-4 h-4" />
-            Sign out
+            Sign Out
           </button>
         </motion.div>
 
-        {/* Tab Navigation */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="flex items-center gap-1 mb-6 p-1 bg-white/5 border border-white/10 rounded-xl w-fit">
-          {tabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                tab === id
-                  ? "bg-primary text-white shadow-lg"
-                  : "text-gray-400 hover:text-white hover:bg-white/8"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </motion.div>
+        {/* ── OVERVIEW WIDGETS ── */}
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
+              <LayoutDashboard className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Live Overview</h2>
+              <p className="text-xs text-gray-500">Platform-wide metrics, updated in real time</p>
+            </div>
+          </div>
+          <OverviewTab />
+        </section>
 
-        {/* Tab Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            {tab === "overview" && <OverviewTab />}
-            {tab === "donors" && <DonorsTab />}
-            {tab === "verifications" && <VerificationsTab />}
-          </motion.div>
-        </AnimatePresence>
+        {/* ── VERIFICATION QUEUE ── */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+        >
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+              <ClipboardList className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Verification Queue</h2>
+              <p className="text-xs text-gray-500">Approve or reject donor-submitted donation proofs</p>
+            </div>
+          </div>
+          <VerificationsTab />
+        </motion.section>
+
+        {/* ── DONOR MANAGEMENT ── */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        >
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center">
+              <UserCog className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Donor Management</h2>
+              <p className="text-xs text-gray-500">View, edit, or remove any donor — or add one manually</p>
+            </div>
+          </div>
+          <DonorsTab />
+        </motion.section>
+
       </div>
     </div>
   );
