@@ -10,11 +10,10 @@ import { Switch } from "@/components/ui/switch";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  useListDonors, getListDonorsQueryKey,
-  useCreateRequest,
-} from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase, type Donor } from "@/lib/supabase";
+
+const DONORS_QUERY_KEY = ["supabase", "donors"] as const;
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -24,7 +23,7 @@ const DISTRICTS = [
   "Tangail", "Jessore", "Bogura", "Cox's Bazar", "Jamalpur",
 ];
 
-type DonorType = NonNullable<ReturnType<typeof useListDonors>["data"]>[number];
+type DonorType = Donor;
 
 const COUNTDOWN_TOTAL = 10; // seconds — exact reveal timing per spec
 const RING_RADIUS = 70;
@@ -52,7 +51,33 @@ function RequestModal({ donor, onClose }: { donor: DonorType; onClose: () => voi
   const erroredRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const queryClient = useQueryClient();
-  const { mutate: createRequest } = useCreateRequest();
+  const { mutate: createRequest } = useMutation({
+    mutationFn: async (vars: { donor_id: number; requester_identifier: string }) => {
+      const { data, error } = await supabase
+        .from("requests")
+        .insert({
+          donor_id: vars.donor_id,
+          requester_identifier: vars.requester_identifier,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      // Increment the donor's total_requests_received counter (best-effort).
+      const { data: donorRow } = await supabase
+        .from("donors")
+        .select("total_requests_received")
+        .eq("id", vars.donor_id)
+        .single();
+      if (donorRow) {
+        await supabase
+          .from("donors")
+          .update({ total_requests_received: (donorRow.total_requests_received ?? 0) + 1 })
+          .eq("id", vars.donor_id);
+      }
+      return data;
+    },
+  });
 
   // Try to reveal — only when both gates pass and no error occurred
   const tryReveal = useCallback(() => {
@@ -86,16 +111,14 @@ function RequestModal({ donor, onClose }: { donor: DonorType; onClose: () => voi
 
     createRequest(
       {
-        data: {
-          donor_id: donor.id,
-          requester_identifier: getOrCreateRequesterId(),
-        },
+        donor_id: donor.id,
+        requester_identifier: getOrCreateRequesterId(),
       },
       {
         onSuccess: () => {
           if (erroredRef.current) return;
           requestSucceededRef.current = true;
-          queryClient.invalidateQueries({ queryKey: getListDonorsQueryKey({}) });
+          queryClient.invalidateQueries({ queryKey: DONORS_QUERY_KEY });
           tryReveal();
         },
         onError: () => {
@@ -482,10 +505,17 @@ export default function FindDonors() {
   const [onlyAvailable, setOnlyAvailable] = useState(true);
   const [activeDonor, setActiveDonor] = useState<DonorType | null>(null);
 
-  const { data: allDonors, isLoading } = useListDonors(
-    {},
-    { query: { queryKey: getListDonorsQueryKey({}) } }
-  );
+  const { data: allDonors, isLoading } = useQuery({
+    queryKey: DONORS_QUERY_KEY,
+    queryFn: async (): Promise<DonorType[]> => {
+      const { data, error } = await supabase
+        .from("donors")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as DonorType[];
+    },
+  });
 
   const filtered = useMemo(() => {
     if (!allDonors) return [];

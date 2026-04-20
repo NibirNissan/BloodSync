@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCreateDonor } from "@workspace/api-client-react";
+import { useMutation } from "@tanstack/react-query";
+import { supabase, type Donor } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import {
   Heart, Loader2, User, MapPin, Droplet, Phone, Calendar,
@@ -71,7 +72,40 @@ export default function Register() {
     mode: "onTouched",
   });
 
-  const createDonor = useCreateDonor();
+  const createDonor = useMutation({
+    mutationFn: async (values: FormData & { smoker: boolean; whatsapp_number: string }) => {
+      const { data, error } = await supabase
+        .from("donors")
+        .insert({
+          name: values.name,
+          blood_group: values.blood_group,
+          district: values.district,
+          whatsapp_number: values.whatsapp_number,
+          smoker: values.smoker,
+          last_donation_date: values.last_donation_date || null,
+          is_willing_to_donate: values.is_willing_to_donate,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Donor;
+    },
+    onSuccess: (donor) => {
+      localStorage.setItem("bloodsync_donor_id", String(donor.id));
+      toast({
+        title: "Registration successful",
+        description: "Welcome to BloodSync — redirecting to your dashboard.",
+      });
+      setTimeout(() => setLocation("/donor-dashboard"), 700);
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Registration failed",
+        description: err.message || "There was an error. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const onSubmit = (values: FormData) => {
     const digits = values.whatsapp_number
@@ -80,33 +114,11 @@ export default function Register() {
       .replace(/^0/, "");
     const fullNumber = `+880${digits}`;
 
-    createDonor.mutate(
-      {
-        data: {
-          ...values,
-          smoker,
-          whatsapp_number: fullNumber,
-          last_donation_date: values.last_donation_date || null,
-        },
-      },
-      {
-        onSuccess: (donor) => {
-          localStorage.setItem("bloodsync_donor_id", String(donor.id));
-          toast({
-            title: "Registration successful",
-            description: "Welcome to BloodSync — redirecting to your dashboard.",
-          });
-          setTimeout(() => setLocation("/donor-dashboard"), 700);
-        },
-        onError: () => {
-          toast({
-            title: "Registration failed",
-            description: "There was an error. Please try again.",
-            variant: "destructive",
-          });
-        },
-      }
-    );
+    createDonor.mutate({
+      ...values,
+      smoker,
+      whatsapp_number: fullNumber,
+    });
   };
 
   return (

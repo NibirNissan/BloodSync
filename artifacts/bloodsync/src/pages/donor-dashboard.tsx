@@ -6,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  useGetDonor, getGetDonorQueryKey,
-  useUpdateDonor,
-  useCreateVerification,
-  useListVerifications, getListVerificationsQueryKey,
-} from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import { supabase, type Donor, type DonationVerification } from "@/lib/supabase";
+
+const donorKey = (id: number) => ["supabase", "donors", id] as const;
+const verificationsKey = (donorId: number) =>
+  ["supabase", "verifications", "donor", donorId] as const;
 import { useToast } from "@/hooks/use-toast";
 import {
   Heart, Droplet, Activity, PhoneCall, MapPin, Calendar,
@@ -43,7 +42,25 @@ function VerifyRecentDonationSection({ donorId }: { donorId: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { mutate: createVerification } = useCreateVerification();
+  const { mutate: createVerification } = useMutation({
+    mutationFn: async (vars: {
+      donor_id: number;
+      recipient_details: string;
+      proof_document_url?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("donations_verification")
+        .insert({
+          donor_id: vars.donor_id,
+          recipient_details: vars.recipient_details,
+          proof_document_url: vars.proof_document_url ?? null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as DonationVerification;
+    },
+  });
 
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -69,8 +86,8 @@ function VerifyRecentDonationSection({ donorId }: { donorId: number }) {
     let proofUrl: string | undefined;
     if (docFile) {
       try {
-        const { objectPath } = await uploadVerificationImage(docFile, donorId);
-        proofUrl = objectPath;
+        const { publicUrl } = await uploadVerificationImage(docFile, donorId);
+        proofUrl = publicUrl;
       } catch (err) {
         toast({
           title: "Upload failed",
@@ -84,10 +101,14 @@ function VerifyRecentDonationSection({ donorId }: { donorId: number }) {
     const recipient = recipientName.trim();
     const hosp = hospital.trim();
     createVerification(
-      { data: { donor_id: donorId, recipient_details: JSON.stringify({ name: recipient, hospital: hosp, contact: contact.trim() }), proof_document_url: proofUrl } },
+      {
+        donor_id: donorId,
+        recipient_details: JSON.stringify({ name: recipient, hospital: hosp, contact: contact.trim() }),
+        proof_document_url: proofUrl,
+      },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListVerificationsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: verificationsKey(donorId) });
           setSubmittedAt(new Date());
           setSubmittedRecipient(recipient);
           setSubmittedHospital(hosp);
@@ -496,24 +517,55 @@ export default function DonorDashboard() {
     if (stored) setDonorId(Number(stored));
   }, []);
 
-  const { data: donor, isLoading } = useGetDonor(donorId!, {
-    query: { enabled: !!donorId, queryKey: getGetDonorQueryKey(donorId!) },
+  const { data: donor, isLoading } = useQuery({
+    queryKey: donorKey(donorId ?? 0),
+    enabled: !!donorId,
+    queryFn: async (): Promise<Donor | null> => {
+      const { data, error } = await supabase
+        .from("donors")
+        .select("*")
+        .eq("id", donorId!)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as Donor | null) ?? null;
+    },
   });
 
-  const { data: allVerifications } = useListVerifications({
-    query: { queryKey: getListVerificationsQueryKey(), enabled: !!donorId },
+  const { data: allVerifications } = useQuery({
+    queryKey: verificationsKey(donorId ?? 0),
+    enabled: !!donorId,
+    queryFn: async (): Promise<DonationVerification[]> => {
+      const { data, error } = await supabase
+        .from("donations_verification")
+        .select("*")
+        .eq("donor_id", donorId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as DonationVerification[];
+    },
   });
 
-  const updateDonor = useUpdateDonor();
+  const updateDonor = useMutation({
+    mutationFn: async (vars: { id: number; is_willing_to_donate: boolean }) => {
+      const { data, error } = await supabase
+        .from("donors")
+        .update({ is_willing_to_donate: vars.is_willing_to_donate })
+        .eq("id", vars.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Donor;
+    },
+  });
 
   const toggleAvailability = () => {
     if (!donor || isToggling) return;
     setIsToggling(true);
     updateDonor.mutate(
-      { id: donor.id, data: { is_willing_to_donate: !donor.is_willing_to_donate } },
+      { id: donor.id, is_willing_to_donate: !donor.is_willing_to_donate },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetDonorQueryKey(donor.id) });
+          queryClient.invalidateQueries({ queryKey: donorKey(donor.id) });
           toast({
             title: donor.is_willing_to_donate ? "You're now Unavailable" : "You're now Active",
             description: donor.is_willing_to_donate ? "Hidden from donor search." : "Visible to people seeking blood.",

@@ -1,9 +1,19 @@
+import { supabase, VERIFICATION_BUCKET } from "./supabase";
+
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export interface UploadResult {
-  objectPath: string;
+  /** Public URL stored in `donations_verification.proof_document_url`. */
+  publicUrl: string;
 }
 
+/**
+ * Upload a donor verification image directly to the public Supabase Storage
+ * bucket `verification-docs`. Enforces image-only and 10 MB cap on the client.
+ *
+ * @param file     image file selected by the donor
+ * @param donorId  donor id (used as a path prefix for traceability)
+ */
 export async function uploadVerificationImage(
   file: File,
   donorId: number,
@@ -14,47 +24,34 @@ export async function uploadVerificationImage(
   if (file.size > MAX_BYTES) {
     throw new Error("File exceeds the 10 MB limit.");
   }
+  if (!donorId || donorId <= 0) {
+    throw new Error("You must be a registered donor to upload proof.");
+  }
 
-  const metaRes = await fetch("/api/storage/uploads/request-url", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Donor-Id": String(donorId),
-    },
-    body: JSON.stringify({
-      name: file.name,
-      size: file.size,
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "jpg";
+  const objectPath = `${donorId}/${Date.now()}-${crypto.randomUUID()}.${safeExt}`;
+
+  const { error } = await supabase.storage
+    .from(VERIFICATION_BUCKET)
+    .upload(objectPath, file, {
       contentType: file.type,
-    }),
-  });
+      cacheControl: "3600",
+      upsert: false,
+    });
 
-  if (!metaRes.ok) {
-    const data = await metaRes.json().catch(() => ({}));
-    throw new Error(data.error ?? "Failed to start upload.");
+  if (error) {
+    throw new Error(error.message || "Upload to storage failed.");
   }
 
-  const { uploadURL, objectPath } = (await metaRes.json()) as {
-    uploadURL: string;
-    objectPath: string;
-  };
-
-  const putRes = await fetch(uploadURL, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type },
-  });
-
-  if (!putRes.ok) {
-    throw new Error("Upload to storage failed.");
-  }
-
-  return { objectPath };
+  const { data } = supabase.storage.from(VERIFICATION_BUCKET).getPublicUrl(objectPath);
+  return { publicUrl: data.publicUrl };
 }
 
 /**
  * Resolve a stored proof_document_url to a renderable src.
- * - `/objects/...` → served via `/api/storage/objects/...`
- * - data:/http(s): URLs (legacy base64 or external) → returned as-is
+ * Supabase URLs are full https URLs and are returned as-is.
+ * Legacy object paths (`/objects/...`) keep working through the API server.
  */
 export function resolveProofUrl(value: string | null | undefined): string | null {
   if (!value) return null;
