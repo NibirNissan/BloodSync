@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "BloodSync"
+version = "1.0.0"
+id = "artifacts/bloodsync"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26028
+
+[services.development]
+run = "pnpm --filter @workspace/bloodsync run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bloodsync", "run", "build" ]
+publicDir = "artifacts/bloodsync/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26028"
+BASE_PATH = "/"

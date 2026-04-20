@@ -3,20 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: BloodSync API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: donors
+    description: Blood donor operations
+  - name: requests
+    description: Donation request operations
+  - name: verifications
+    description: Donation verification operations
+  - name: stats
+    description: Dashboard statistics
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,183 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /donors:
+    get:
+      operationId: listDonors
+      tags: [donors]
+      summary: List all donors
+      parameters:
+        - name: blood_group
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: district
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: is_willing_to_donate
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of donors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Donor"
+    post:
+      operationId: createDonor
+      tags: [donors]
+      summary: Register as a blood donor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDonorBody"
+      responses:
+        "201":
+          description: Donor created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donor"
+
+  /donors/{id}:
+    get:
+      operationId: getDonor
+      tags: [donors]
+      summary: Get donor by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Donor found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donor"
+        "404":
+          description: Not found
+
+  /requests:
+    get:
+      operationId: listRequests
+      tags: [requests]
+      summary: List donation requests
+      responses:
+        "200":
+          description: List of requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DonationRequest"
+    post:
+      operationId: createRequest
+      tags: [requests]
+      summary: Create a donation request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRequestBody"
+      responses:
+        "201":
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationRequest"
+
+  /verifications:
+    get:
+      operationId: listVerifications
+      tags: [verifications]
+      summary: List donation verifications
+      responses:
+        "200":
+          description: List of verifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DonationVerification"
+    post:
+      operationId: createVerification
+      tags: [verifications]
+      summary: Submit donation verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVerificationBody"
+      responses:
+        "201":
+          description: Verification submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationVerification"
+
+  /stats/summary:
+    get:
+      operationId: getStatsSummary
+      tags: [stats]
+      summary: Get BloodSync dashboard summary stats
+      responses:
+        "200":
+          description: Summary statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsSummary"
+
+  /stats/blood-groups:
+    get:
+      operationId: getBloodGroupStats
+      tags: [stats]
+      summary: Get donor count breakdown by blood group
+      responses:
+        "200":
+          description: Blood group statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BloodGroupStat"
+
+  /donors/top:
+    get:
+      operationId: getTopDonors
+      tags: [donors]
+      summary: Get top donors by successful donations
+      responses:
+        "200":
+          description: Top donors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Donor"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +219,167 @@ components:
       required:
         - status
 
+    Donor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        blood_group:
+          type: string
+        district:
+          type: string
+        whatsapp_number:
+          type: string
+        smoker:
+          type: boolean
+        last_donation_date:
+          type: string
+          nullable: true
+        is_willing_to_donate:
+          type: boolean
+        total_requests_received:
+          type: integer
+        successful_donations:
+          type: integer
+        created_at:
+          type: string
+      required:
+        - id
+        - name
+        - blood_group
+        - district
+        - whatsapp_number
+        - smoker
+        - is_willing_to_donate
+        - total_requests_received
+        - successful_donations
+        - created_at
+
+    CreateDonorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        blood_group:
+          type: string
+        district:
+          type: string
+        whatsapp_number:
+          type: string
+        smoker:
+          type: boolean
+        last_donation_date:
+          type: string
+          nullable: true
+        is_willing_to_donate:
+          type: boolean
+      required:
+        - name
+        - blood_group
+        - district
+        - whatsapp_number
+        - smoker
+        - is_willing_to_donate
+
+    DonationRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        donor_id:
+          type: integer
+        requester_identifier:
+          type: string
+        status:
+          type: string
+          enum: [pending, accepted, completed, rejected]
+        created_at:
+          type: string
+      required:
+        - id
+        - donor_id
+        - requester_identifier
+        - status
+        - created_at
+
+    CreateRequestBody:
+      type: object
+      properties:
+        donor_id:
+          type: integer
+        requester_identifier:
+          type: string
+      required:
+        - donor_id
+        - requester_identifier
+
+    DonationVerification:
+      type: object
+      properties:
+        id:
+          type: integer
+        donor_id:
+          type: integer
+        recipient_details:
+          type: string
+        proof_document_url:
+          type: string
+          nullable: true
+        verification_status:
+          type: string
+          enum: [pending, verified, rejected]
+        created_at:
+          type: string
+      required:
+        - id
+        - donor_id
+        - recipient_details
+        - verification_status
+        - created_at
+
+    CreateVerificationBody:
+      type: object
+      properties:
+        donor_id:
+          type: integer
+        recipient_details:
+          type: string
+        proof_document_url:
+          type: string
+          nullable: true
+      required:
+        - donor_id
+        - recipient_details
+
+    StatsSummary:
+      type: object
+      properties:
+        total_donors:
+          type: integer
+        willing_donors:
+          type: integer
+        total_requests:
+          type: integer
+        completed_donations:
+          type: integer
+        pending_verifications:
+          type: integer
+      required:
+        - total_donors
+        - willing_donors
+        - total_requests
+        - completed_donations
+        - pending_verifications
+
+    BloodGroupStat:
+      type: object
+      properties:
+        blood_group:
+          type: string
+        count:
+          type: integer
+      required:
+        - blood_group
+        - count
