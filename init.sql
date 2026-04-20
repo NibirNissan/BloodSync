@@ -134,6 +134,50 @@ create policy "Public upload verification-docs"
   on storage.objects for insert
   with check (bucket_id = 'verification-docs');
 
+-- ─── Atomic, idempotent verification actions ─────────────────────────────────
+-- Approving from the client used to do read-then-write on successful_donations,
+-- which is racy under concurrent admin actions and can overcount. These RPCs
+-- run server-side in a single transaction with a `pending` guard, so a row
+-- can only ever be approved/rejected once.
+
+create or replace function public.approve_verification(p_id integer)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_donor int;
+begin
+  update public.donations_verification
+    set verification_status = 'verified'
+    where id = p_id and verification_status = 'pending'
+    returning donor_id into v_donor;
+
+  if v_donor is not null then
+    update public.donors
+      set successful_donations = coalesce(successful_donations, 0) + 1
+      where id = v_donor;
+  end if;
+end;
+$$;
+
+create or replace function public.reject_verification(p_id integer)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.donations_verification
+    set verification_status = 'rejected'
+    where id = p_id and verification_status = 'pending';
+end;
+$$;
+
+grant execute on function public.approve_verification(integer) to anon, authenticated;
+grant execute on function public.reject_verification(integer)  to anon, authenticated;
+
 -- ─── How to make a Super Admin ──────────────────────────────────────────────
 -- After a user signs up, upgrade them by running:
 --   update public.profiles set role = 'admin' where email = 'you@example.com';

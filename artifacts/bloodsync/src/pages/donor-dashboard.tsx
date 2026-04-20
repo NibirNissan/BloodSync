@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { supabase, type Donor, type DonationVerification } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 
 const donorKey = (id: number) => ["supabase", "donors", id] as const;
 const verificationsKey = (donorId: number) =>
@@ -114,7 +115,14 @@ function VerifyRecentDonationSection({ donorId }: { donorId: number }) {
           setSubmittedHospital(hosp);
           setPhase("pending");
         },
-        onError: () => { toast({ title: "Submission failed", variant: "destructive" }); setPhase("form"); },
+        onError: (err: any) => {
+          toast({
+            title: "Submission failed",
+            description: err?.message || "Could not save verification. Check your connection and try again.",
+            variant: "destructive",
+          });
+          setPhase("form");
+        },
       }
     );
   };

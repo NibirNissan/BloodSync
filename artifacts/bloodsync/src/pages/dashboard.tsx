@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { resolveProofUrl } from "@/lib/upload";
+import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
@@ -20,8 +22,6 @@ import {
   useCreateDonor,
   useUpdateDonor,
   useDeleteDonor,
-  useListVerifications, getListVerificationsQueryKey,
-  useUpdateVerification,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -106,7 +106,7 @@ function AdminGate({ onUnlock }: { onUnlock: () => void }) {
 }
 
 // ─── Add / Edit Donor Modal ───────────────────────────────────────────────────
-type DonorRecord = NonNullable<ReturnType<typeof useListDonors>["data"]>[number];
+type DonorRecord = NonNullable<ReturnType<typeof useListDonors>["data"]> extends ReadonlyArray<infer T> ? T : any;
 
 function DonorFormModal({
   donor,
@@ -628,24 +628,38 @@ function DonorsTab() {
 }
 
 // ─── Verification Queue Tab ───────────────────────────────────────────────────
-type VerifRecord = NonNullable<ReturnType<typeof useListVerifications>["data"]>[number];
+// Supabase-backed: reads from `donations_verification` joined with `donors`.
+interface VerifRecord {
+  id: number;
+  donor_id: number;
+  recipient_details: string;
+  proof_document_url: string | null;
+  verification_status: "pending" | "verified" | "rejected";
+  created_at: string;
+  donor: { name: string; successful_donations: number } | null;
+}
+
+const SUPABASE_VERIFICATIONS_KEY = ["supabase", "admin", "verifications"] as const;
 
 function VerificationsTab() {
-  const { data: verifications, isLoading } = useListVerifications({ query: { queryKey: getListVerificationsQueryKey() } });
-  const { data: donors } = useListDonors(undefined, { query: { queryKey: getListDonorsQueryKey() } });
-  const { mutate: updateVerification } = useUpdateVerification();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const { data: verifications, isLoading, error: listError } = useQuery<VerifRecord[]>({
+    queryKey: SUPABASE_VERIFICATIONS_KEY,
+    queryFn: async (): Promise<VerifRecord[]> => {
+      const { data, error } = await supabase
+        .from("donations_verification")
+        .select("id, donor_id, recipient_details, proof_document_url, verification_status, created_at, donor:donors(name, successful_donations)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as VerifRecord[];
+    },
+  });
 
   const [filter, setFilter] = useState<"all" | "pending" | "verified" | "rejected">("pending");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [proofModal, setProofModal] = useState<string | null>(null);
-
-  const donorMap = useMemo(() => {
-    const map: Record<number, string> = {};
-    donors?.forEach(d => { map[d.id] = d.name; });
-    return map;
-  }, [donors]);
 
   const filtered = useMemo(() => {
     if (!verifications) return [];
@@ -653,21 +667,32 @@ function VerificationsTab() {
     return verifications.filter(v => v.verification_status === filter);
   }, [verifications, filter]);
 
-  const handleAction = (v: VerifRecord, status: "verified" | "rejected") => {
+  const handleAction = async (v: VerifRecord, status: "verified" | "rejected") => {
     setActionLoading(v.id);
-    updateVerification(
-      { id: v.id, data: { verification_status: status } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListVerificationsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getListDonorsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetStatsSummaryQueryKey() });
-          toast({ title: status === "verified" ? "Verification approved — donor count incremented" : "Verification rejected" });
-          setActionLoading(null);
-        },
-        onError: () => { toast({ title: "Action failed", variant: "destructive" }); setActionLoading(null); },
-      }
-    );
+    try {
+      // Atomic, idempotent server-side action — see init.sql.
+      const rpc = status === "verified" ? "approve_verification" : "reject_verification";
+      const { error: rpcErr } = await supabase.rpc(rpc, { p_id: v.id });
+      if (rpcErr) throw rpcErr;
+
+      queryClient.invalidateQueries({ queryKey: SUPABASE_VERIFICATIONS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["supabase", "donors"] });
+      queryClient.invalidateQueries({ queryKey: getListDonorsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetStatsSummaryQueryKey() });
+      toast({
+        title: status === "verified" ? "Verification approved — donor count incremented" : "Verification rejected",
+      });
+    } catch (err: any) {
+      // Always refetch so the UI reflects the true state even on partial failure.
+      queryClient.invalidateQueries({ queryKey: SUPABASE_VERIFICATIONS_KEY });
+      toast({
+        title: "Action failed",
+        description: err?.message || "Could not update verification.",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const counts = {
@@ -695,6 +720,15 @@ function VerificationsTab() {
       </AnimatePresence>
 
       <GlassCard className="p-6">
+        {listError && (
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">Could not load verifications from Supabase.</p>
+              <p className="text-red-300/80 text-xs mt-0.5 break-all">{(listError as Error).message}</p>
+            </div>
+          </div>
+        )}
         {/* Filter tabs */}
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           {(["pending", "all", "verified", "rejected"] as const).map((f) => (
@@ -748,7 +782,7 @@ function VerificationsTab() {
                 filtered.map((v) => {
                   let details: { name?: string; hospital?: string; contact?: string } = {};
                   try { details = JSON.parse(v.recipient_details); } catch { details = { name: v.recipient_details }; }
-                  const donorName = donorMap[v.donor_id] ?? `Donor #${v.donor_id}`;
+                  const donorName = v.donor?.name ?? `Donor #${v.donor_id}`;
                   const isLoading = actionLoading === v.id;
 
                   return (
