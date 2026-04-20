@@ -26,6 +26,12 @@ export interface Donor {
 export interface UpdateDonorBody {
   is_willing_to_donate?: boolean;
   last_donation_date?: string | null;
+  name?: string;
+  blood_group?: string;
+  district?: string;
+  whatsapp_number?: string;
+  smoker?: boolean;
+  successful_donations?: number;
 }
 
 export interface CreateDonorBody {
@@ -77,6 +83,18 @@ export interface DonationVerification {
   proof_document_url?: string | null;
   verification_status: DonationVerificationVerificationStatus;
   created_at: string;
+}
+
+export type UpdateVerificationBodyVerificationStatus =
+  (typeof UpdateVerificationBodyVerificationStatus)[keyof typeof UpdateVerificationBodyVerificationStatus];
+
+export const UpdateVerificationBodyVerificationStatus = {
+  verified: "verified",
+  rejected: "rejected",
+} as const;
+
+export interface UpdateVerificationBody {
+  verification_status: UpdateVerificationBodyVerificationStatus;
 }
 
 export interface CreateVerificationBody {

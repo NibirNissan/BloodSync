@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, donorsTable, requestsTable } from "@workspace/db";
+import { db, donorsTable, requestsTable, verificationsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import {
   ListDonorsQueryParams,
@@ -80,6 +80,28 @@ router.patch("/:id", async (req, res) => {
     .returning();
 
   return res.json({ ...updated, created_at: updated.created_at.toISOString() });
+});
+
+router.delete("/:id", async (req, res) => {
+  const parsed = GetDonorParams.safeParse({ id: Number(req.params.id) });
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid ID" });
+  }
+
+  const [existing] = await db
+    .select()
+    .from(donorsTable)
+    .where(eq(donorsTable.id, parsed.data.id));
+
+  if (!existing) {
+    return res.status(404).json({ error: "Donor not found" });
+  }
+
+  await db.delete(verificationsTable).where(eq(verificationsTable.donor_id, parsed.data.id));
+  await db.delete(requestsTable).where(eq(requestsTable.donor_id, parsed.data.id));
+  await db.delete(donorsTable).where(eq(donorsTable.id, parsed.data.id));
+
+  return res.status(204).send();
 });
 
 router.get("/:id", async (req, res) => {

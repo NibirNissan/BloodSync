@@ -28,6 +28,7 @@ import type {
   ListDonorsParams,
   StatsSummary,
   UpdateDonorBody,
+  UpdateVerificationBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -467,6 +468,90 @@ export const useUpdateDonor = <
 };
 
 /**
+ * @summary Delete a donor
+ */
+export const getDeleteDonorUrl = (id: number) => {
+  return `/api/donors/${id}`;
+};
+
+export const deleteDonor = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteDonorUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteDonorMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDonor>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDonor>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteDonor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDonor>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteDonor(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDonorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDonor>>
+>;
+
+export type DeleteDonorMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete a donor
+ */
+export const useDeleteDonor = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDonor>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDonor>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteDonorMutationOptions(options));
+};
+
+/**
  * @summary List donation requests
  */
 export const getListRequestsUrl = () => {
@@ -625,6 +710,93 @@ export const useCreateRequest = <
   TContext
 > => {
   return useMutation(getCreateRequestMutationOptions(options));
+};
+
+/**
+ * @summary Approve or reject a donation verification
+ */
+export const getUpdateVerificationUrl = (id: number) => {
+  return `/api/verifications/${id}`;
+};
+
+export const updateVerification = async (
+  id: number,
+  updateVerificationBody: UpdateVerificationBody,
+  options?: RequestInit,
+): Promise<DonationVerification> => {
+  return customFetch<DonationVerification>(getUpdateVerificationUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateVerificationBody),
+  });
+};
+
+export const getUpdateVerificationMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVerification>>,
+    TError,
+    { id: number; data: BodyType<UpdateVerificationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateVerification>>,
+  TError,
+  { id: number; data: BodyType<UpdateVerificationBody> },
+  TContext
+> => {
+  const mutationKey = ["updateVerification"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateVerification>>,
+    { id: number; data: BodyType<UpdateVerificationBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateVerification(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateVerificationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateVerification>>
+>;
+export type UpdateVerificationMutationBody = BodyType<UpdateVerificationBody>;
+export type UpdateVerificationMutationError = ErrorType<void>;
+
+/**
+ * @summary Approve or reject a donation verification
+ */
+export const useUpdateVerification = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVerification>>,
+    TError,
+    { id: number; data: BodyType<UpdateVerificationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateVerification>>,
+  TError,
+  { id: number; data: BodyType<UpdateVerificationBody> },
+  TContext
+> => {
+  return useMutation(getUpdateVerificationMutationOptions(options));
 };
 
 /**

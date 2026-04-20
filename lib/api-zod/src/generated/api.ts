@@ -82,6 +82,12 @@ export const UpdateDonorParams = zod.object({
 export const UpdateDonorBody = zod.object({
   is_willing_to_donate: zod.boolean().optional(),
   last_donation_date: zod.string().nullish(),
+  name: zod.string().optional(),
+  blood_group: zod.string().optional(),
+  district: zod.string().optional(),
+  whatsapp_number: zod.string().optional(),
+  smoker: zod.boolean().optional(),
+  successful_donations: zod.number().optional(),
 });
 
 export const UpdateDonorResponse = zod.object({
@@ -96,6 +102,13 @@ export const UpdateDonorResponse = zod.object({
   total_requests_received: zod.number(),
   successful_donations: zod.number(),
   created_at: zod.string(),
+});
+
+/**
+ * @summary Delete a donor
+ */
+export const DeleteDonorParams = zod.object({
+  id: zod.coerce.number(),
 });
 
 /**
@@ -116,6 +129,26 @@ export const ListRequestsResponse = zod.array(ListRequestsResponseItem);
 export const CreateRequestBody = zod.object({
   donor_id: zod.number(),
   requester_identifier: zod.string(),
+});
+
+/**
+ * @summary Approve or reject a donation verification
+ */
+export const UpdateVerificationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateVerificationBody = zod.object({
+  verification_status: zod.enum(["verified", "rejected"]),
+});
+
+export const UpdateVerificationResponse = zod.object({
+  id: zod.number(),
+  donor_id: zod.number(),
+  recipient_details: zod.string(),
+  proof_document_url: zod.string().nullish(),
+  verification_status: zod.enum(["pending", "verified", "rejected"]),
+  created_at: zod.string(),
 });
 
 /**

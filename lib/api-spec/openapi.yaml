@@ -126,6 +126,21 @@ paths:
                 $ref: "#/components/schemas/Donor"
         "404":
           description: Not found
+    delete:
+      operationId: deleteDonor
+      tags: [donors]
+      summary: Delete a donor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Donor deleted
+        "404":
+          description: Not found
 
   /requests:
     get:
@@ -158,6 +173,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DonationRequest"
+
+  /verifications/{id}:
+    patch:
+      operationId: updateVerification
+      tags: [verifications]
+      summary: Approve or reject a donation verification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVerificationBody"
+      responses:
+        "200":
+          description: Verification updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationVerification"
+        "404":
+          description: Not found
 
   /verifications:
     get:
@@ -290,6 +332,18 @@ components:
         last_donation_date:
           type: string
           nullable: true
+        name:
+          type: string
+        blood_group:
+          type: string
+        district:
+          type: string
+        whatsapp_number:
+          type: string
+        smoker:
+          type: boolean
+        successful_donations:
+          type: integer
 
     CreateDonorBody:
       type: object
@@ -372,6 +426,15 @@ components:
         - recipient_details
         - verification_status
         - created_at
+
+    UpdateVerificationBody:
+      type: object
+      properties:
+        verification_status:
+          type: string
+          enum: [verified, rejected]
+      required:
+        - verification_status
 
     CreateVerificationBody:
       type: object
