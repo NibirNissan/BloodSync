@@ -37,9 +37,9 @@ import {
 } from "lucide-react";
 import { BlogManagement } from "@/components/BlogManagement";
 import { format } from "date-fns";
+import { BD_DIVISIONS, districtsForDivision } from "@/data/bdLocations";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-const DISTRICTS = ["Dhaka", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Barisal", "Rangpur", "Mymensingh", "Comilla", "Narayanganj", "Gazipur", "Other"];
 
 type Tab = "overview" | "donors" | "verifications";
 
@@ -57,7 +57,16 @@ function DonorFormModal({
 }) {
   const isEdit = !!donor;
   const [name, setName] = useState(donor?.name ?? "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [bloodGroup, setBloodGroup] = useState(donor?.blood_group ?? "");
+  // Cascading division → district. On edit, pre-fill division by deriving
+  // it from the existing district so the dropdown shows the correct list.
+  const [division, setDivision] = useState<string>(() => {
+    if (!donor?.district) return "";
+    const found = BD_DIVISIONS.find(d => d.districts.includes(donor.district));
+    return found?.name ?? "";
+  });
   const [district, setDistrict] = useState(donor?.district ?? "");
   const [whatsapp, setWhatsapp] = useState(donor?.whatsapp_number ?? "");
   const [smoker, setSmoker] = useState(donor?.smoker ?? false);
@@ -68,41 +77,113 @@ function DonorFormModal({
   const [submitting, setSubmitting] = useState(false);
 
   const { toast } = useToast();
-  const { mutate: createDonor } = useCreateDonor();
+  const queryClient = useQueryClient();
   const { mutate: updateDonor } = useUpdateDonor();
 
-  const isValid = name.trim() && bloodGroup && district.trim() && whatsapp.trim();
+  // Districts available based on selected division (cascading filter).
+  const availableDistricts = useMemo(() => districtsForDivision(division), [division]);
 
-  const handleSubmit = () => {
-    if (!isValid) return;
+  // Reset district whenever division changes so a stale district from a
+  // different division can never be saved.
+  const handleDivisionChange = (next: string) => {
+    setDivision(next);
+    setDistrict("");
+  };
+
+  const baseValid = name.trim() && bloodGroup && division && district && whatsapp.trim();
+  const isValid = isEdit
+    ? baseValid
+    : baseValid && /^\S+@\S+\.\S+$/.test(email.trim()) && password.length >= 6;
+
+  const handleSubmit = async () => {
+    if (!isValid) {
+      toast({
+        variant: "destructive",
+        title: "অনুগ্রহ করে সমস্ত প্রয়োজনীয় ফিল্ড পূরণ করুন",
+        description: !isEdit && password.length < 6
+          ? "Password must be at least 6 characters."
+          : undefined,
+      });
+      return;
+    }
+
     setSubmitting(true);
-    const base = {
+
+    // Common donor row payload (used for both create + edit).
+    const donorData = {
       name: name.trim(),
       blood_group: bloodGroup,
-      district: district.trim(),
+      division,
+      district,
       whatsapp_number: whatsapp.trim(),
       smoker,
       is_willing_to_donate: willing,
       last_donation_date: lastDonation || null,
     };
+
+    // ── EDIT path: just update via the existing API hook.
     if (isEdit && donor) {
       updateDonor(
-        { id: donor.id, data: base },
+        { id: donor.id, data: donorData },
         {
-          onSuccess: () => { toast({ title: "Donor updated" }); onSuccess(); },
-          onError: () => { toast({ title: "Update failed", variant: "destructive" }); setSubmitting(false); },
+          onSuccess: () => {
+            toast({ title: "Donor updated" });
+            queryClient.invalidateQueries({ queryKey: ["supabase", "donors"] });
+            onSuccess();
+          },
+          onError: (e: any) => {
+            console.error("Full Supabase Error:", e);
+            toast({ title: "Update failed", description: e?.message, variant: "destructive" });
+            setSubmitting(false);
+          },
         }
       );
-    } else {
-      createDonor(
-        { data: base },
-        {
-          onSuccess: () => { toast({ title: "Donor added" }); onSuccess(); },
-          onError: () => { toast({ title: "Create failed", variant: "destructive" }); setSubmitting(false); },
-        }
-      );
+      return;
+    }
+
+    // ── CREATE path: 1) create the auth user, 2) insert the donor row
+    //    linked by auth_uid. Any failure in either step surfaces a red toast.
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+      if (authError) throw authError;
+
+      const newAuthUid = authData.user?.id ?? null;
+
+      // Insert directly via supabase so we can attach the brand-new auth_uid
+      // immediately (the API hook doesn't accept it as a parameter).
+      const { error: insertError } = await supabase
+        .from("donors")
+        .insert({ ...donorData, auth_uid: newAuthUid })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Donor added successfully",
+        description: `${donorData.name} has been registered and added to the directory.`,
+      });
+
+      // Refresh the donor list so the new row appears at the top instantly.
+      await queryClient.invalidateQueries({ queryKey: ["supabase", "donors"] });
+      onSuccess();
+    } catch (e: any) {
+      console.error("Full Supabase Error:", e);
+      toast({
+        variant: "destructive",
+        title: "Failed to add donor",
+        description: e?.message || "Something went wrong while creating the account.",
+      });
+      setSubmitting(false);
     }
   };
+
+  // Reusable input/label classes — keep the dark glassmorphism aesthetic.
+  const inputCls = "bg-white/5 border-white/10 text-white h-10 rounded-xl focus-visible:ring-primary placeholder:text-gray-600 font-en";
+  const labelCls = "text-xs text-gray-300 font-medium";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -111,11 +192,13 @@ function DonorFormModal({
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="relative w-full max-w-lg"
+        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto"
       >
         <GlassCard className="p-6 space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-bold text-white">{isEdit ? "Edit Donor" : "Add Donor Manually"}</h3>
+            <h3 className="text-lg font-bold text-white">
+              {isEdit ? "ডোনার তথ্য সম্পাদনা করুন" : "ম্যানুয়ালি ডোনার যোগ করুন"}
+            </h3>
             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
@@ -123,12 +206,40 @@ function DonorFormModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <Label className="text-xs text-gray-400">Full Name *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rahul Islam" className="bg-white/5 border-white/10 text-white h-10 rounded-xl focus-visible:ring-primary placeholder:text-gray-600" />
+              <Label className={labelCls}>সম্পূর্ণ নাম *</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rahul Islam" className={inputCls} />
             </div>
 
+            {/* Email + Password — only when creating a NEW donor. */}
+            {!isEdit && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>ইমেইল *</Label>
+                  <Input
+                    type="email"
+                    autoComplete="off"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="donor@example.com"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>পাসওয়ার্ড *</Label>
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className={inputCls}
+                  />
+                </div>
+              </>
+            )}
+
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-400">Blood Group *</Label>
+              <Label className={labelCls}>রক্তের গ্রুপ *</Label>
               <Select value={bloodGroup} onValueChange={setBloodGroup}>
                 <SelectTrigger className="bg-white/5 border-white/10 text-white h-10 rounded-xl">
                   <SelectValue placeholder="Select..." />
@@ -142,43 +253,65 @@ function DonorFormModal({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-400">District *</Label>
-              <Select value={district} onValueChange={setDistrict}>
+              <Label className={labelCls}>WhatsApp নম্বর *</Label>
+              <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="+880 1712-345678" className={inputCls} />
+            </div>
+
+            {/* Cascading: Division → District. */}
+            <div className="space-y-1.5">
+              <Label className={labelCls}>বিভাগ *</Label>
+              <Select value={division} onValueChange={handleDivisionChange}>
                 <SelectTrigger className="bg-white/5 border-white/10 text-white h-10 rounded-xl">
-                  <SelectValue placeholder="Select..." />
+                  <SelectValue placeholder="Select division..." />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-white/10 text-white">
-                  {DISTRICTS.map(d => (
+                <SelectContent className="bg-zinc-900 border-white/10 text-white max-h-72">
+                  {BD_DIVISIONS.map(d => (
+                    <SelectItem key={d.name} value={d.name}>
+                      <span className="font-en">{d.name}</span>
+                      <span className="text-gray-500 ml-2">{d.bn}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className={labelCls}>জেলা *</Label>
+              <Select value={district} onValueChange={setDistrict} disabled={!division}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white h-10 rounded-xl disabled:opacity-50">
+                  <SelectValue placeholder={division ? "Select district..." : "Select division first"} />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-white/10 text-white max-h-72">
+                  {availableDistricts.map(d => (
                     <SelectItem key={d} value={d}>{d}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="col-span-2 space-y-1.5">
-              <Label className="text-xs text-gray-400 flex items-center gap-1"><Phone className="w-3 h-3" /> WhatsApp Number *</Label>
-              <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="+880 1712-345678" className="bg-white/5 border-white/10 text-white h-10 rounded-xl focus-visible:ring-primary placeholder:text-gray-600" />
-            </div>
-
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-400 flex items-center gap-1"><Calendar className="w-3 h-3" /> Last Donation Date</Label>
-              <Input type="date" value={lastDonation} onChange={e => setLastDonation(e.target.value)} className="bg-white/5 border-white/10 text-white h-10 rounded-xl focus-visible:ring-primary [color-scheme:dark]" />
+              <Label className={labelCls + " flex items-center gap-1"}>
+                <Calendar className="w-3 h-3" /> শেষ রক্তদানের তারিখ
+              </Label>
+              <Input type="date" value={lastDonation} onChange={e => setLastDonation(e.target.value)} className={inputCls + " [color-scheme:dark]"} />
             </div>
 
             <div className="space-y-3 flex flex-col justify-end pb-0.5">
               <div className="flex items-center justify-between px-3 py-2 bg-white/5 border border-white/10 rounded-xl">
-                <span className="text-xs text-gray-400">Smoker</span>
+                <span className="text-xs text-gray-400">ধূমপায়ী</span>
                 <Switch checked={smoker} onCheckedChange={setSmoker} className="scale-90" />
               </div>
               <div className="flex items-center justify-between px-3 py-2 bg-white/5 border border-white/10 rounded-xl">
-                <span className="text-xs text-gray-400">Willing</span>
+                <span className="text-xs text-gray-400">সক্রিয়</span>
                 <Switch checked={willing} onCheckedChange={setWilling} className="scale-90 data-[state=checked]:bg-emerald-500" />
               </div>
             </div>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={onClose} className="flex-1 h-10 rounded-xl border-white/10 text-gray-400 hover:bg-white/5">Cancel</Button>
+            <Button variant="outline" onClick={onClose} className="flex-1 h-10 rounded-xl border-white/10 text-gray-400 hover:bg-white/5">
+              Cancel
+            </Button>
             <Button
               onClick={handleSubmit}
               disabled={!isValid || submitting}
