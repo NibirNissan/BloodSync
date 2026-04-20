@@ -4,9 +4,10 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth, routeForRole } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 export function Navbar() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
 
@@ -15,14 +16,16 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     setMobileMenuOpen(false);
-    // 1. Tell Supabase to revoke the session.
-    try { await signOut(); }
-    catch (err) { console.warn("[navbar] signOut error (continuing):", err); }
-    // 2. Nuke every persisted browser state — no token can survive.
+    // 1. Revoke the Supabase session.
+    try { await supabase.auth.signOut(); }
+    catch (err) { console.warn("[navbar] supabase.signOut error (continuing):", err); }
+    // 2. Also clear the React-side auth context.
+    try { await signOut(); } catch { /* non-fatal */ }
+    // 3. Wipe every persisted browser state so no token can survive.
     try { localStorage.clear(); } catch { /* non-fatal */ }
     try { sessionStorage.clear(); } catch { /* non-fatal */ }
-    // 3. Drop the entire SPA history stack and rebuild from "/".
-    window.location.replace("/");
+    // 4. HARD reload to "/" — destroys all React state + Supabase session.
+    window.location.href = "/";
   };
 
   // Admin link is intentionally hidden from public navigation.

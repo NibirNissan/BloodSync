@@ -601,11 +601,6 @@ export default function DonorDashboard() {
     );
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    setLocation("/");
-  };
-
   // ─── Empty / loading states ────────────────────────────────────
   if (authLoading || (user && lookupLoading)) {
     return (
@@ -710,25 +705,16 @@ export default function DonorDashboard() {
     <div className="min-h-screen pt-32 pb-20 w-full px-6 sm:px-10 lg:px-16">
       <div className="max-w-7xl mx-auto">
 
-        {/* Header */}
+        {/* Header — Sign Out lives ONLY in the floating Navbar pill. */}
         <motion.div
           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-start justify-between flex-wrap gap-4 mb-10"
+          className="mb-10"
         >
-          <div>
-            <p className="text-xs text-primary uppercase tracking-[0.25em] font-semibold font-en mb-2">Donor Dashboard</p>
-            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-              আবার স্বাগতম, <span className="glow-red-text font-en">{donor.name.split(" ")[0]}</span>
-            </h1>
-            <p className="text-gray-400 mt-2">আপনার ডোনার প্রোফাইল পরিচালনা করুন এবং আপনার অবদান দেখুন</p>
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-white px-4 py-2 rounded-full bg-white/[0.04] backdrop-blur-md border border-white/10 hover:bg-white/[0.08] transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
+          <p className="text-xs text-primary uppercase tracking-[0.25em] font-semibold font-en mb-2">Donor Dashboard</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+            আবার স্বাগতম, <span className="glow-red-text font-en">{donor.name.split(" ")[0]}</span>
+          </h1>
+          <p className="text-gray-400 mt-2">আপনার ডোনার প্রোফাইল পরিচালনা করুন এবং আপনার অবদান দেখুন</p>
         </motion.div>
 
         {/* TOP SUMMARY CARD — Profile + Status Toggle */}

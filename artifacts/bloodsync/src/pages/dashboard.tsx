@@ -1010,11 +1010,6 @@ export default function Dashboard() {
     );
   }
 
-  const handleSignOut = async () => {
-    await signOut();
-    setLocation("/");
-  };
-
   return (
     <div className="min-h-screen pt-28 pb-20 w-full px-6 sm:px-10 lg:px-16 relative overflow-hidden">
       {/* Ambient red glow backdrop */}
@@ -1023,28 +1018,18 @@ export default function Dashboard() {
 
       <div className="relative w-full space-y-10">
 
-        {/* Header */}
+        {/* Header — Sign Out lives ONLY in the floating Navbar pill. */}
         <motion.div
           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-start justify-between flex-wrap gap-4"
         >
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-3">
-              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs text-primary uppercase tracking-[0.25em] font-bold font-en">Super Admin</p>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-              নিয়ন্ত্রণ <span className="glow-red-text">কেন্দ্র</span>
-            </h1>
-            <p className="text-gray-400 mt-2 text-base">BloodSync প্ল্যাটফর্মের পূর্ণ পরিচালনা নিয়ন্ত্রণ</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 mb-3">
+            <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs text-primary uppercase tracking-[0.25em] font-bold font-en">Super Admin</p>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/20 px-4 py-2.5 rounded-full transition-all bg-white/[0.04] backdrop-blur-md hover:bg-white/[0.08]"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
+          <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+            নিয়ন্ত্রণ <span className="glow-red-text">কেন্দ্র</span>
+          </h1>
+          <p className="text-gray-400 mt-2 text-base">BloodSync প্ল্যাটফর্মের পূর্ণ পরিচালনা নিয়ন্ত্রণ</p>
         </motion.div>
 
         {/* ── OVERVIEW WIDGETS ── */}
