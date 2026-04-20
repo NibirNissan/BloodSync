@@ -5,6 +5,7 @@ import {
   Zap, Heart, MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DnaHelixBackground } from "@/components/DnaHelix";
 import { useGetStatsSummary, getGetStatsSummaryQueryKey } from "@workspace/api-client-react";
 
 export default function Home() {
@@ -70,7 +71,14 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen pt-32 pb-24 w-full">
+    <div className="relative min-h-screen pt-32 pb-24 w-full">
+
+      {/* Immersive 3D DNA helix — fixed full-viewport background.
+          pointer-events:none so all CTAs stay clickable. */}
+      <DnaHelixBackground />
+
+      {/* All page content sits in front via z-10. */}
+      <div className="relative z-10">
 
       {/* HERO — full width with breathing horizontal padding */}
       <section className="w-full px-6 sm:px-10 lg:px-16 mb-28">
@@ -214,6 +222,8 @@ export default function Home() {
           </div>
         </motion.div>
       </section>
+
+      </div>
     </div>
   );
 }
