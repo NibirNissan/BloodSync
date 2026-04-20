@@ -15,27 +15,14 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     setMobileMenuOpen(false);
-    try {
-      await signOut();
-    } catch (err) {
-      console.warn("[navbar] signOut error (continuing anyway):", err);
-    }
-    // Defensively clear every Supabase auth artifact from local + session
-    // storage so a stale token can never resurrect the previous session.
-    try {
-      Object.keys(localStorage)
-        .filter((k) => k.startsWith("sb-") || k.includes("supabase"))
-        .forEach((k) => localStorage.removeItem(k));
-      Object.keys(sessionStorage)
-        .filter((k) => k.startsWith("sb-") || k.includes("supabase"))
-        .forEach((k) => sessionStorage.removeItem(k));
-    } catch {
-      /* storage access denied — non-fatal */
-    }
-    // Hard reload to "/" — wipes every in-memory React state and forces
-    // the AuthProvider to re-bootstrap with a clean slate. This is what
-    // makes the button feel instantly responsive.
-    window.location.href = "/";
+    // 1. Tell Supabase to revoke the session.
+    try { await signOut(); }
+    catch (err) { console.warn("[navbar] signOut error (continuing):", err); }
+    // 2. Nuke every persisted browser state — no token can survive.
+    try { localStorage.clear(); } catch { /* non-fatal */ }
+    try { sessionStorage.clear(); } catch { /* non-fatal */ }
+    // 3. Drop the entire SPA history stack and rebuild from "/".
+    window.location.replace("/");
   };
 
   // Admin link is intentionally hidden from public navigation.

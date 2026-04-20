@@ -823,17 +823,23 @@ export default function Dashboard() {
   const { user, profile, loading, signOut } = useAuth();
   const { toast } = useToast();
 
-  // ── Emergency 5-second timeout ──────────────────────────────────────
-  // The auth provider always settles in finite time, but as a defensive
-  // belt-and-suspenders measure we trip a `timedOut` flag if `loading`
-  // is still true after 5 s. The UI then swaps the spinner for a clear
-  // "Data Fetch Timeout" card with a Retry button.
+  // ── Emergency 7-second timeout ──────────────────────────────────────
+  // If `loading` is still true after 7 s we trip `timedOut` and swap the
+  // spinner for a clear "Data Fetch Timeout" card with a Sign Out escape.
   const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
     if (!loading) { setTimedOut(false); return; }
-    const id = window.setTimeout(() => setTimedOut(true), 5000);
+    const id = window.setTimeout(() => setTimedOut(true), 7000);
     return () => window.clearTimeout(id);
   }, [loading]);
+
+  const handleEmergencySignOut = async () => {
+    try { await signOut(); }
+    catch (err) { console.warn("[admin] emergency signOut error:", err); }
+    try { localStorage.clear(); } catch { /* non-fatal */ }
+    try { sessionStorage.clear(); } catch { /* non-fatal */ }
+    window.location.replace("/");
+  };
 
   // ── Role re-verification ────────────────────────────────────────────
   // Once auth has settled (loading=false), if there is no signed-in user
@@ -868,7 +874,7 @@ export default function Dashboard() {
     );
   }
 
-  // Hard timeout fallback — auth/profile fetch never settled in 5 s.
+  // Hard timeout fallback — auth/profile fetch never settled in 7 s.
   if (loading && timedOut) {
     return (
       <div className="min-h-screen pt-32 pb-20 flex items-center justify-center w-full px-6">
@@ -878,15 +884,25 @@ export default function Dashboard() {
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Error: Data Fetch Timeout</h2>
           <p className="text-sm text-gray-400 mb-5 font-en">
-            The dashboard couldn't load within 5 seconds. Your network or
+            The dashboard couldn't load within 7 seconds. Your network or
             Supabase project may be unreachable.
           </p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="w-full h-11 btn-glow-red text-white border-0 rounded-xl"
-          >
-            Retry
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={() => window.location.reload()}
+              className="w-full h-11 btn-glow-red text-white border-0 rounded-xl"
+            >
+              Retry
+            </Button>
+            <Button
+              onClick={handleEmergencySignOut}
+              variant="ghost"
+              className="w-full h-11 rounded-xl gap-2 text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
+          </div>
         </GlassCard>
       </div>
     );

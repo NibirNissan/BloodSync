@@ -40,27 +40,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Try once, then retry exactly once after a short backoff. Used so a
+  // single transient network blip can't strand an admin on the wrong page.
+  const fetchProfileOnce = async (uid: string): Promise<Profile | null> => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", uid)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data as Profile | null) ?? null;
+  };
+
   const loadProfile = async (uid: string | null) => {
     if (!uid) { setProfile(null); return; }
+    let p: Profile | null = null;
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", uid)
-        .maybeSingle();
-      if (error) {
-        // Table missing / RLS denied — log and clear so the UI can react.
-        console.warn("[auth] profile fetch error:", error.message);
-        setProfile(null);
-        return;
-      }
-      const p = (data as Profile | null) ?? null;
-      console.log("[auth] profile loaded:", p ? { id: p.id, role: p.role } : null);
-      setProfile(p);
+      p = await fetchProfileOnce(uid);
     } catch (err) {
-      console.warn("[auth] profile fetch threw:", err);
-      setProfile(null);
+      console.warn("[auth] profile fetch failed, retrying once:", err);
+      try {
+        await new Promise((r) => setTimeout(r, 400));
+        p = await fetchProfileOnce(uid);
+      } catch (err2) {
+        console.warn("[auth] profile retry also failed:", err2);
+        p = null;
+      }
     }
+    console.log("[auth] profile loaded:", p ? { id: p.id, role: p.role } : null);
+    setProfile(p);
   };
 
   useEffect(() => {
