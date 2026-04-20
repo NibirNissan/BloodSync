@@ -16,16 +16,15 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     setMobileMenuOpen(false);
-    // 1. Revoke the Supabase session.
+    // 1. Revoke the Supabase session on the server.
     try { await supabase.auth.signOut(); }
     catch (err) { console.warn("[navbar] supabase.signOut error (continuing):", err); }
-    // 2. Also clear the React-side auth context.
-    try { await signOut(); } catch { /* non-fatal */ }
-    // 3. Wipe every persisted browser state so no token can survive.
+    // 2. Wipe every persisted browser state so no token can survive.
     try { localStorage.clear(); } catch { /* non-fatal */ }
     try { sessionStorage.clear(); } catch { /* non-fatal */ }
-    // 4. HARD reload to "/" — destroys all React state + Supabase session.
-    window.location.href = "/";
+    // 3. Replace history entry with "/" so back-button cannot return to the
+    //    authenticated page — forces a full reload, clearing any stuck state.
+    window.location.replace("/");
   };
 
   // Admin link is intentionally hidden from public navigation.
