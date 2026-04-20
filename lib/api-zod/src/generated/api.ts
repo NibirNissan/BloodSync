@@ -73,6 +73,32 @@ export const GetDonorResponse = zod.object({
 });
 
 /**
+ * @summary Update donor availability status
+ */
+export const UpdateDonorParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateDonorBody = zod.object({
+  is_willing_to_donate: zod.boolean().optional(),
+  last_donation_date: zod.string().nullish(),
+});
+
+export const UpdateDonorResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  blood_group: zod.string(),
+  district: zod.string(),
+  whatsapp_number: zod.string(),
+  smoker: zod.boolean(),
+  last_donation_date: zod.string().nullish(),
+  is_willing_to_donate: zod.boolean(),
+  total_requests_received: zod.number(),
+  successful_donations: zod.number(),
+  created_at: zod.string(),
+});
+
+/**
  * @summary List donation requests
  */
 export const ListRequestsResponseItem = zod.object({

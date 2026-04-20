@@ -23,6 +23,11 @@ export interface Donor {
   created_at: string;
 }
 
+export interface UpdateDonorBody {
+  is_willing_to_donate?: boolean;
+  last_donation_date?: string | null;
+}
+
 export interface CreateDonorBody {
   name: string;
   blood_group: string;

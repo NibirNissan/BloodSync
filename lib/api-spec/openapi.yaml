@@ -101,6 +101,31 @@ paths:
                 $ref: "#/components/schemas/Donor"
         "404":
           description: Not found
+    patch:
+      operationId: updateDonor
+      tags: [donors]
+      summary: Update donor availability status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDonorBody"
+      responses:
+        "200":
+          description: Donor updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donor"
+        "404":
+          description: Not found
 
   /requests:
     get:
@@ -256,6 +281,15 @@ components:
         - total_requests_received
         - successful_donations
         - created_at
+
+    UpdateDonorBody:
+      type: object
+      properties:
+        is_willing_to_donate:
+          type: boolean
+        last_donation_date:
+          type: string
+          nullable: true
 
     CreateDonorBody:
       type: object

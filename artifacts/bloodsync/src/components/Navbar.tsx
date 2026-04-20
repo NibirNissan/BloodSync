@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Droplet, Menu, X } from "lucide-react";
+import { Droplet, Menu, X, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -8,26 +8,31 @@ export function Navbar() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDonor, setIsDonor] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    setIsDonor(!!localStorage.getItem("bloodsync_donor_id"));
+  }, [location]);
+
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/find-donors", label: "Find Donors" },
-    { href: "/dashboard", label: "Dashboard" },
+    { href: "/dashboard", label: "Admin" },
   ];
 
   return (
     <header
       className={cn(
         "fixed top-0 inset-x-0 z-50 transition-all duration-300 border-b border-transparent",
-        isScrolled ? "glass-panel border-white/10 shadow-lg shadow-black/50 py-3" : "py-5 bg-transparent"
+        isScrolled
+          ? "glass-panel border-white/10 shadow-lg shadow-black/50 py-3"
+          : "py-5 bg-transparent"
       )}
     >
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
@@ -57,11 +62,28 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/login">
-            <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/5">
-              Login
-            </Button>
-          </Link>
+          {isDonor ? (
+            <Link href="/donor-dashboard">
+              <Button
+                variant="ghost"
+                className={cn(
+                  "text-sm gap-2 transition-all",
+                  location === "/donor-dashboard"
+                    ? "bg-white/10 text-white"
+                    : "text-gray-300 hover:text-white hover:bg-white/5"
+                )}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                My Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/5">
+                Login
+              </Button>
+            </Link>
+          )}
           <Link href="/register">
             <Button className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(220,38,38,0.3)]">
               Register as Donor
@@ -88,20 +110,27 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className={cn(
                 "px-4 py-3 rounded-lg text-sm font-medium",
-                location === link.href
-                  ? "bg-white/10 text-white"
-                  : "text-gray-400"
+                location === link.href ? "bg-white/10 text-white" : "text-gray-400"
               )}
             >
               {link.label}
             </Link>
           ))}
           <div className="h-px bg-white/10 my-2" />
-          <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-            <Button variant="ghost" className="w-full justify-start text-gray-300">
-              Login
-            </Button>
-          </Link>
+          {isDonor ? (
+            <Link href="/donor-dashboard" onClick={() => setMobileMenuOpen(false)}>
+              <Button variant="ghost" className="w-full justify-start text-gray-300 gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                My Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+              <Button variant="ghost" className="w-full justify-start text-gray-300">
+                Login
+              </Button>
+            </Link>
+          )}
           <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
             <Button className="w-full bg-primary text-white hover:bg-primary/90">
               Register as Donor

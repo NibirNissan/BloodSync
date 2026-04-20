@@ -5,6 +5,7 @@ import {
   ListDonorsQueryParams,
   CreateDonorBody,
   GetDonorParams,
+  UpdateDonorBody,
 } from "@workspace/api-zod";
 
 const router = Router();
@@ -50,6 +51,35 @@ router.get("/top", async (req, res) => {
     .orderBy(desc(donorsTable.successful_donations))
     .limit(10);
   return res.json(donors.map(d => ({ ...d, created_at: d.created_at.toISOString() })));
+});
+
+router.patch("/:id", async (req, res) => {
+  const parsed = GetDonorParams.safeParse({ id: Number(req.params.id) });
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid ID" });
+  }
+
+  const body = UpdateDonorBody.safeParse(req.body);
+  if (!body.success) {
+    return res.status(400).json({ error: "Invalid body", details: body.error });
+  }
+
+  const [existing] = await db
+    .select()
+    .from(donorsTable)
+    .where(eq(donorsTable.id, parsed.data.id));
+
+  if (!existing) {
+    return res.status(404).json({ error: "Donor not found" });
+  }
+
+  const [updated] = await db
+    .update(donorsTable)
+    .set(body.data)
+    .where(eq(donorsTable.id, parsed.data.id))
+    .returning();
+
+  return res.json({ ...updated, created_at: updated.created_at.toISOString() });
 });
 
 router.get("/:id", async (req, res) => {

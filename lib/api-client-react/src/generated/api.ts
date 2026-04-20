@@ -27,6 +27,7 @@ import type {
   HealthStatus,
   ListDonorsParams,
   StatsSummary,
+  UpdateDonorBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -377,6 +378,93 @@ export function useGetDonor<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update donor availability status
+ */
+export const getUpdateDonorUrl = (id: number) => {
+  return `/api/donors/${id}`;
+};
+
+export const updateDonor = async (
+  id: number,
+  updateDonorBody: UpdateDonorBody,
+  options?: RequestInit,
+): Promise<Donor> => {
+  return customFetch<Donor>(getUpdateDonorUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateDonorBody),
+  });
+};
+
+export const getUpdateDonorMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDonor>>,
+    TError,
+    { id: number; data: BodyType<UpdateDonorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDonor>>,
+  TError,
+  { id: number; data: BodyType<UpdateDonorBody> },
+  TContext
+> => {
+  const mutationKey = ["updateDonor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDonor>>,
+    { id: number; data: BodyType<UpdateDonorBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateDonor(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDonorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDonor>>
+>;
+export type UpdateDonorMutationBody = BodyType<UpdateDonorBody>;
+export type UpdateDonorMutationError = ErrorType<void>;
+
+/**
+ * @summary Update donor availability status
+ */
+export const useUpdateDonor = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDonor>>,
+    TError,
+    { id: number; data: BodyType<UpdateDonorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDonor>>,
+  TError,
+  { id: number; data: BodyType<UpdateDonorBody> },
+  TContext
+> => {
+  return useMutation(getUpdateDonorMutationOptions(options));
+};
 
 /**
  * @summary List donation requests
