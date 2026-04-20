@@ -24,10 +24,11 @@ import {
 } from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
 import { supabase, type Donor } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   Heart, Loader2, User, MapPin, Droplet, Phone, Calendar,
-  Cigarette, ShieldCheck, ArrowRight, Sparkles,
+  Cigarette, ShieldCheck, ArrowRight, Sparkles, Mail, Lock,
 } from "lucide-react";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -40,6 +41,8 @@ const DISTRICTS = [
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().email("Please enter a valid email."),
+  password: z.string().min(6, "Password must be at least 6 characters."),
   blood_group: z.string({ required_error: "Please select a blood group." }).min(1, "Please select a blood group."),
   district: z.string({ required_error: "Please select your district." }).min(1, "Please select your district."),
   whatsapp_number: z
@@ -62,6 +65,8 @@ export default function Register() {
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
+      email: "",
+      password: "",
       blood_group: undefined,
       district: undefined,
       whatsapp_number: "",
@@ -72,8 +77,22 @@ export default function Register() {
     mode: "onTouched",
   });
 
+  const { signUp } = useAuth();
+
   const createDonor = useMutation({
     mutationFn: async (values: FormData & { smoker: boolean; whatsapp_number: string }) => {
+      // 1. Create the auth user + profile (role='donor').
+      const { user } = await signUp({
+        email: values.email,
+        password: values.password,
+        role: "donor",
+        full_name: values.name,
+      });
+      if (!user) {
+        throw new Error("Account created — check your email to confirm, then log in.");
+      }
+
+      // 2. Insert the donor row linked to that auth UID.
       const { data, error } = await supabase
         .from("donors")
         .insert({
@@ -84,14 +103,14 @@ export default function Register() {
           smoker: values.smoker,
           last_donation_date: values.last_donation_date || null,
           is_willing_to_donate: values.is_willing_to_donate,
+          auth_uid: user.id,
         })
         .select()
         .single();
       if (error) throw error;
       return data as Donor;
     },
-    onSuccess: (donor) => {
-      localStorage.setItem("bloodsync_donor_id", String(donor.id));
+    onSuccess: () => {
       toast({
         title: "Registration successful",
         description: "Welcome to BloodSync — redirecting to your dashboard.",
@@ -170,6 +189,54 @@ export default function Register() {
                   </FormItem>
                 )}
               />
+
+              {/* Email + Password (side by side) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-gray-500" />
+                        Email
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-400 text-xs" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5 text-gray-500" />
+                        Password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="At least 6 characters"
+                          autoComplete="new-password"
+                          className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-400 text-xs" />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {/* Blood Group + District (side by side) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

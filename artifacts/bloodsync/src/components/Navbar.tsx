@@ -1,21 +1,20 @@
 import { Link, useLocation } from "wouter";
 import { Droplet, Menu, X, LayoutDashboard, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth, routeForRole } from "@/lib/auth";
 
 export function Navbar() {
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isDonor, setIsDonor] = useState(false);
+  const { user, profile, signOut } = useAuth();
 
-  useEffect(() => {
-    setIsDonor(!!localStorage.getItem("bloodsync_donor_id"));
-  }, [location]);
+  const isAuthed = !!user;
+  const dashboardHref = routeForRole(profile?.role);
 
-  const handleSignOut = () => {
-    localStorage.removeItem("bloodsync_donor_id");
-    setIsDonor(false);
+  const handleSignOut = async () => {
+    await signOut();
     setMobileMenuOpen(false);
     setLocation("/");
   };
@@ -30,8 +29,8 @@ export function Navbar() {
     <header
       className="fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl z-50"
     >
-      <div className="rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] px-3 sm:px-5 py-2.5 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group pl-2">
+      <div className="rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] px-3 sm:px-5 py-2.5 flex items-center justify-between gap-3">
+        <Link href="/" className="flex items-center gap-2 group pl-2 shrink-0">
           <div className="bg-primary/15 p-1.5 rounded-xl border border-primary/30 group-hover:bg-primary/25 transition-colors">
             <Droplet className="w-4 h-4 text-primary" fill="currentColor" />
           </div>
@@ -45,7 +44,7 @@ export function Navbar() {
               key={link.href}
               href={link.href}
               className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap",
                 location === link.href
                   ? "bg-white/10 text-white"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -57,20 +56,20 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2 shrink-0">
-          {isDonor ? (
+          {isAuthed ? (
             <>
-              <Link href="/donor-dashboard" className="inline-flex">
+              <Link href={dashboardHref} className="inline-flex">
                 <Button
                   variant="ghost"
                   className={cn(
                     "h-9 px-4 rounded-full text-sm gap-2 transition-all whitespace-nowrap",
-                    location === "/donor-dashboard"
+                    location === dashboardHref
                       ? "bg-white/10 text-white"
                       : "text-gray-300 hover:text-white hover:bg-white/5"
                   )}
                 >
                   <LayoutDashboard className="w-4 h-4" />
-                  My Dashboard
+                  Dashboard
                 </Button>
               </Link>
               <Button
@@ -125,12 +124,12 @@ export function Navbar() {
             </Link>
           ))}
           <div className="h-px bg-white/10 my-1" />
-          {isDonor ? (
+          {isAuthed ? (
             <>
-              <Link href="/donor-dashboard" onClick={() => setMobileMenuOpen(false)}>
+              <Link href={dashboardHref} onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start text-gray-300 gap-2 rounded-2xl">
                   <LayoutDashboard className="w-4 h-4" />
-                  My Dashboard
+                  Dashboard
                 </Button>
               </Link>
               <Button

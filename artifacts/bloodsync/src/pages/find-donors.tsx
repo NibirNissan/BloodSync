@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Donor } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 const DONORS_QUERY_KEY = ["supabase", "donors"] as const;
 
@@ -29,21 +32,11 @@ const COUNTDOWN_TOTAL = 10; // seconds — exact reveal timing per spec
 const RING_RADIUS = 70;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-function getOrCreateRequesterId(): string {
-  const key = "bloodsync_requester_id";
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = `req_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`;
-    localStorage.setItem(key, id);
-  }
-  return id;
-}
-
 // ─── Request Modal: countdown → reveal contact ───────────────────────────────
 // Reveal is gated on BOTH (1) successful request creation and (2) countdown completion.
 type RequestPhase = "counting" | "revealed" | "error";
 
-function RequestModal({ donor, onClose }: { donor: DonorType; onClose: () => void }) {
+function RequestModal({ donor, requesterUid, onClose }: { donor: DonorType; requesterUid: string; onClose: () => void }) {
   const [phase, setPhase] = useState<RequestPhase>("counting");
   const [secondsLeft, setSecondsLeft] = useState(COUNTDOWN_TOTAL);
   const requestSucceededRef = useRef(false);
@@ -52,12 +45,13 @@ function RequestModal({ donor, onClose }: { donor: DonorType; onClose: () => voi
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const queryClient = useQueryClient();
   const { mutate: createRequest } = useMutation({
-    mutationFn: async (vars: { donor_id: number; requester_identifier: string }) => {
+    mutationFn: async (vars: { donor_id: number; requester_uid: string }) => {
       const { data, error } = await supabase
         .from("requests")
         .insert({
           donor_id: vars.donor_id,
-          requester_identifier: vars.requester_identifier,
+          requester_identifier: vars.requester_uid,
+          requester_uid: vars.requester_uid,
         })
         .select()
         .single();
@@ -112,7 +106,7 @@ function RequestModal({ donor, onClose }: { donor: DonorType; onClose: () => voi
     createRequest(
       {
         donor_id: donor.id,
-        requester_identifier: getOrCreateRequesterId(),
+        requester_uid: requesterUid,
       },
       {
         onSuccess: () => {
@@ -504,6 +498,21 @@ export default function FindDonors() {
   const [district, setDistrict] = useState<string>("all");
   const [onlyAvailable, setOnlyAvailable] = useState(true);
   const [activeDonor, setActiveDonor] = useState<DonorType | null>(null);
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const requestDonor = (donor: DonorType) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please log in to request a donor's contact details.",
+      });
+      setLocation("/login");
+      return;
+    }
+    setActiveDonor(donor);
+  };
 
   const { data: allDonors, isLoading } = useQuery({
     queryKey: DONORS_QUERY_KEY,
@@ -713,7 +722,7 @@ export default function FindDonors() {
                   key={donor.id}
                   donor={donor}
                   index={idx}
-                  onRequest={setActiveDonor}
+                  onRequest={requestDonor}
                 />
               ))}
             </AnimatePresence>
@@ -724,9 +733,10 @@ export default function FindDonors() {
 
       {/* Request Modal */}
       <AnimatePresence>
-        {activeDonor && (
+        {activeDonor && user && (
           <RequestModal
             donor={activeDonor}
+            requesterUid={user.id}
             onClose={() => setActiveDonor(null)}
           />
         )}

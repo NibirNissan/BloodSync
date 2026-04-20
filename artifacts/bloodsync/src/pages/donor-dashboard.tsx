@@ -509,13 +509,25 @@ export default function DonorDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [donorId, setDonorId] = useState<number | null>(null);
+  const { user, loading: authLoading, signOut } = useAuth();
   const [isToggling, setIsToggling] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("bloodsync_donor_id");
-    if (stored) setDonorId(Number(stored));
-  }, []);
+  // Look up donor by auth_uid (linked at registration).
+  const { data: donorByAuth, isLoading: lookupLoading } = useQuery({
+    queryKey: ["supabase", "donor-by-auth", user?.id ?? "anon"],
+    enabled: !!user?.id,
+    queryFn: async (): Promise<Donor | null> => {
+      const { data, error } = await supabase
+        .from("donors")
+        .select("*")
+        .eq("auth_uid", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as Donor | null) ?? null;
+    },
+  });
+
+  const donorId = donorByAuth?.id ?? null;
 
   const { data: donor, isLoading } = useQuery({
     queryKey: donorKey(donorId ?? 0),
@@ -580,12 +592,35 @@ export default function DonorDashboard() {
     );
   };
 
-  const handleSignOut = () => {
-    localStorage.removeItem("bloodsync_donor_id");
+  const handleSignOut = async () => {
+    await signOut();
     setLocation("/");
   };
 
   // ─── Empty / loading states ────────────────────────────────────
+  if (authLoading || (user && lookupLoading)) {
+    return (
+      <div className="min-h-screen pt-32 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-32 flex items-center justify-center px-6">
+        <GlassCard className="p-10 text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-3">Please sign in</h2>
+          <p className="text-gray-400 mb-6">Log in with your donor account to view your dashboard.</p>
+          <Button onClick={() => setLocation("/login")} className="btn-glow-red text-white border-0 rounded-xl">
+            Go to Login
+          </Button>
+        </GlassCard>
+      </div>
+    );
+  }
+
   if (!donorId) {
     return (
       <div className="min-h-screen pt-32 flex items-center justify-center px-6">
@@ -617,7 +652,7 @@ export default function DonorDashboard() {
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-3">Profile not found</h2>
           <p className="text-gray-400 mb-6">We couldn't find your donor profile.</p>
-          <Button onClick={() => { localStorage.removeItem("bloodsync_donor_id"); setLocation("/register"); }} className="btn-glow-red text-white border-0 rounded-xl">
+          <Button onClick={() => setLocation("/register")} className="btn-glow-red text-white border-0 rounded-xl">
             Register Again
           </Button>
         </GlassCard>

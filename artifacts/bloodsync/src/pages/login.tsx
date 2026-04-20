@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, User, Droplet, Lock, Eye, EyeOff } from "lucide-react";
+import { Shield, User, Droplet, Lock, Eye, EyeOff, Mail, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth, routeForRole } from "@/lib/auth";
 
 const ADMIN_PIN = "admin1234";
 
@@ -15,26 +16,58 @@ type Mode = "user" | "admin";
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, profile, signInWithPassword } = useAuth();
+
   const [mode, setMode] = useState<Mode>("user");
   const [isLoading, setIsLoading] = useState(false);
 
-  // user fields
-  const [identifier, setIdentifier] = useState("");
+  // user (Supabase) fields
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // admin fields
+  // admin PIN fields (kept as a quick fallback into the admin panel)
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [adminError, setAdminError] = useState(false);
 
-  const handleUserSubmit = (e: React.FormEvent) => {
+  // If already logged in, route to the right dashboard immediately.
+  useEffect(() => {
+    if (user && profile) {
+      setLocation(routeForRole(profile.role));
+    }
+  }, [user, profile, setLocation]);
+
+  // Show a redirect overlay between sign-in and profile arrival
+  // so the user can't submit twice while we resolve their role.
+  const redirecting = !!user && !profile;
+  if (redirecting) {
+    return (
+      <div className="min-h-screen pt-32 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
+          <p className="text-gray-400 text-sm">Signing you in…</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      await signInWithPassword(email, password);
+      // Fetch fresh profile to decide route (auth context will populate too).
+      // Defer the route until profile arrives via the useEffect above as a backup.
+      toast({ title: "Welcome back", description: "Signing you in…" });
+    } catch (err: any) {
+      toast({
+        title: "Sign in failed",
+        description: err?.message || "Check your email and password.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      toast({ title: "Welcome back", description: "Signed in to BloodSync" });
-      setLocation("/find-donors");
-    }, 800);
+    }
   };
 
   const handleAdminSubmit = (e: React.FormEvent) => {
@@ -50,7 +83,7 @@ export default function Login() {
       setIsLoading(false);
       toast({ title: "Admin access granted", description: "Redirecting to dashboard…" });
       setLocation("/dashboard");
-    }, 500);
+    }, 400);
   };
 
   return (
@@ -59,7 +92,6 @@ export default function Login() {
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 mb-6">
             {mode === "admin"
@@ -76,7 +108,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Mode toggle pill */}
         <div className="flex p-1 mb-6 bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-full">
           <button
             type="button"
@@ -111,20 +142,27 @@ export default function Login() {
                 className="space-y-5"
               >
                 <div className="space-y-2">
-                  <Label htmlFor="identifier" className="text-gray-300 text-sm">Email or Phone Number</Label>
+                  <Label htmlFor="email" className="text-gray-300 text-sm flex items-center gap-2">
+                    <Mail className="w-3.5 h-3.5 text-gray-500" />
+                    Email
+                  </Label>
                   <Input
-                    id="identifier" value={identifier} onChange={e => setIdentifier(e.target.value)}
+                    id="email" type="email" autoComplete="email"
+                    value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="you@example.com" required
                     className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
                   />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-gray-300 text-sm">Password</Label>
-                    <a href="#" className="text-xs text-primary hover:text-primary/80">Forgot?</a>
+                    <Label htmlFor="password" className="text-gray-300 text-sm flex items-center gap-2">
+                      <Lock className="w-3.5 h-3.5 text-gray-500" />
+                      Password
+                    </Label>
                   </div>
                   <Input
-                    id="password" type="password" value={password} onChange={e => setPassword(e.target.value)}
+                    id="password" type="password" autoComplete="current-password"
+                    value={password} onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••" required
                     className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary placeholder:text-gray-600"
                   />
@@ -133,14 +171,24 @@ export default function Login() {
                   type="submit" disabled={isLoading}
                   className="w-full h-12 font-semibold btn-glow-red text-white rounded-xl border-0"
                 >
-                  {isLoading ? "Signing in…" : "Sign In"}
+                  {isLoading ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in…</>
+                  ) : "Sign In"}
                 </Button>
-                <p className="text-center text-sm text-gray-500">
-                  Don't have an account?{" "}
-                  <a href="/register" className="text-white hover:text-primary transition-colors font-medium">
-                    Register here
-                  </a>
-                </p>
+                <div className="text-center text-sm text-gray-500 space-y-1">
+                  <p>
+                    Need an account?{" "}
+                    <a href="/register-user" className="text-white hover:text-primary transition-colors font-medium">
+                      Sign up as User
+                    </a>
+                  </p>
+                  <p>
+                    Want to give blood?{" "}
+                    <a href="/register" className="text-white hover:text-primary transition-colors font-medium">
+                      Register as Donor
+                    </a>
+                  </p>
+                </div>
               </motion.form>
             ) : (
               <motion.form

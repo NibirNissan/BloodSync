@@ -24,20 +24,35 @@ A blood donation web app connecting donors with people in need.
 
 ### Features
 - **Home** — Hero with live stats (total donors, donations, blood groups)
-- **Find Donors** — Filterable donor grid by blood group and district
-- **Register as Donor** — Multi-field signup form
-- **Login** — Role-based login (Super Admin, Blood Donor, Normal User)
-- **Dashboard** — Admin view with summary stats, blood group breakdown, recent activity
+- **Find Donors** — Filterable donor grid; requires login to request a donor's contact
+- **Register as Donor** — Donor signup with email/password (Supabase Auth) + donor profile
+- **Register as User** (`/register-user`) — Normal user signup with email/password
+- **Login** (`/login`) — Unified Supabase Auth login + Admin PIN tab; role-based redirect
+- **User Profile** (`/user-profile`) — Normal user dashboard listing their blood requests
+- **Donor Dashboard** (`/donor-dashboard`) — Donor profile, availability toggle, verification upload
+- **Admin Dashboard** (`/dashboard`) — Stats, donor CRUD, verification review (PIN-gated)
 
-### User Roles
-- **Super Admin** — Full access, can verify donations and manage users
-- **Blood Donor** — Can update profile, track requests and verifications
-- **Normal User (Guest)** — Can browse donors and submit requests
+### Auth & Roles (Supabase Auth)
+- **AuthProvider** (`src/lib/auth.tsx`) wraps the app, listens to `onAuthStateChange`, exposes `user`, `profile`, `signUp`, `signInWithPassword`, `signOut`.
+- Role lives in `public.profiles.role` (`'admin' | 'donor' | 'normal'`).
+- Post-login routing helper `routeForRole`: admin → `/dashboard`, donor → `/donor-dashboard`, normal → `/user-profile`.
+- Donor signup: creates auth user → upserts profile (role='donor') → inserts donors row with `auth_uid` linking to `auth.users.id`.
+- To promote a user to admin, run in Supabase SQL editor:
+  `update public.profiles set role = 'admin' where email = 'you@example.com';`
+- **Important Supabase setting**: Auth → Providers → Email → disable "Confirm email" so signups can log in immediately.
 
-### Database Tables
-- **donors** — name, blood_group, district, whatsapp_number, smoker, last_donation_date, is_willing_to_donate, total_requests_received, successful_donations
-- **requests** — donor_id, requester_identifier, status (pending/accepted/completed/rejected)
-- **donations_verification** — donor_id, recipient_details, proof_document_url, verification_status (pending/verified/rejected)
+### Database Tables (Supabase)
+- **profiles** — id (=auth.users.id), email, full_name, role
+- **donors** — name, blood_group, district, whatsapp_number, smoker, last_donation_date, is_willing_to_donate, total_requests_received, successful_donations, **auth_uid** (FK → auth.users)
+- **requests** — donor_id, requester_identifier (legacy), **requester_uid** (FK → auth.users), status
+- **donations_verification** — donor_id, recipient_details, proof_document_url, verification_status
+
+### Schema bootstrap
+Run `init.sql` once against the Supabase project (SQL Editor or psql). It is idempotent and adds new columns/policies in place.
+
+### Known follow-ups
+- The Admin Dashboard (`/dashboard`) still reads from the legacy `@workspace/api-server` (Express + Drizzle) instead of Supabase, so donors registered through the new Supabase flow will not appear there yet. Migrating its data layer to Supabase is the next logical step.
+- Donors registered before the auth migration have `auth_uid = NULL` and cannot log into `/donor-dashboard` until they re-register or are claimed manually.
 
 ## Key Commands
 
