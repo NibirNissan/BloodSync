@@ -9,7 +9,8 @@ import DonorDashboard from "@/pages/donor-dashboard";
 
 export default function AppLayout() {
   return (
-    <div className="min-h-[100dvh] flex flex-col relative selection:bg-primary/30 selection:text-white">
+    <div className="min-h-[100dvh] flex flex-col relative selection:bg-primary/40 selection:text-white">
+      <div className="app-bg" aria-hidden />
       <Navbar />
       <Switch>
         <Route path="/" component={Home} />
@@ -19,7 +20,7 @@ export default function AppLayout() {
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/donor-dashboard" component={DonorDashboard} />
         <Route>
-          <div className="flex-1 flex items-center justify-center text-white pt-20">
+          <div className="flex-1 flex items-center justify-center text-white pt-32">
             <p>Page Not Found</p>
           </div>
         </Route>

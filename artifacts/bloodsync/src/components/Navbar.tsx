@@ -6,41 +6,29 @@ import { Button } from "@/components/ui/button";
 
 export function Navbar() {
   const [location] = useLocation();
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDonor, setIsDonor] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   useEffect(() => {
     setIsDonor(!!localStorage.getItem("bloodsync_donor_id"));
   }, [location]);
 
+  // Admin link is intentionally hidden from public navigation.
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/find-donors", label: "Find Donors" },
-    { href: "/dashboard", label: "Admin" },
   ];
 
   return (
     <header
-      className={cn(
-        "fixed top-0 inset-x-0 z-50 transition-all duration-300 border-b border-transparent",
-        isScrolled
-          ? "glass-panel border-white/10 shadow-lg shadow-black/50 py-3"
-          : "py-5 bg-transparent"
-      )}
+      className="fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl z-50"
     >
-      <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-primary/20 p-2 rounded-xl border border-primary/30 group-hover:bg-primary/30 transition-colors">
-            <Droplet className="w-5 h-5 text-primary" fill="currentColor" />
+      <div className="rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] px-3 sm:px-5 py-2.5 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 group pl-2">
+          <div className="bg-primary/15 p-1.5 rounded-xl border border-primary/30 group-hover:bg-primary/25 transition-colors">
+            <Droplet className="w-4 h-4 text-primary" fill="currentColor" />
           </div>
-          <span className="font-bold text-xl tracking-tight text-white">BloodSync</span>
+          <span className="font-bold text-base sm:text-lg tracking-tight text-white">BloodSync</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -50,7 +38,7 @@ export function Navbar() {
               key={link.href}
               href={link.href}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 location === link.href
                   ? "bg-white/10 text-white"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -61,13 +49,13 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2">
           {isDonor ? (
             <Link href="/donor-dashboard">
               <Button
                 variant="ghost"
                 className={cn(
-                  "text-sm gap-2 transition-all",
+                  "h-9 px-4 rounded-full text-sm gap-2 transition-all",
                   location === "/donor-dashboard"
                     ? "bg-white/10 text-white"
                     : "text-gray-300 hover:text-white hover:bg-white/5"
@@ -79,13 +67,13 @@ export function Navbar() {
             </Link>
           ) : (
             <Link href="/login">
-              <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/5">
+              <Button variant="ghost" className="h-9 px-4 rounded-full text-sm text-gray-300 hover:text-white hover:bg-white/5">
                 Login
               </Button>
             </Link>
           )}
           <Link href="/register">
-            <Button className="bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+            <Button className="h-9 px-4 rounded-full text-sm font-semibold btn-glow-red text-white border-0">
               Register as Donor
             </Button>
           </Link>
@@ -93,46 +81,47 @@ export function Navbar() {
 
         {/* Mobile Toggle */}
         <button
-          className="md:hidden p-2 text-gray-300"
+          className="md:hidden p-2 text-gray-300 rounded-full hover:bg-white/5"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
         >
-          {mobileMenuOpen ? <X /> : <Menu />}
+          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full glass-panel border-t border-white/10 p-4 flex flex-col gap-2 shadow-2xl">
+        <div className="md:hidden mt-3 mx-2 rounded-3xl bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-2xl p-3 flex flex-col gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMobileMenuOpen(false)}
               className={cn(
-                "px-4 py-3 rounded-lg text-sm font-medium",
-                location === link.href ? "bg-white/10 text-white" : "text-gray-400"
+                "px-4 py-3 rounded-2xl text-sm font-medium",
+                location === link.href ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5"
               )}
             >
               {link.label}
             </Link>
           ))}
-          <div className="h-px bg-white/10 my-2" />
+          <div className="h-px bg-white/10 my-1" />
           {isDonor ? (
             <Link href="/donor-dashboard" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-gray-300 gap-2">
+              <Button variant="ghost" className="w-full justify-start text-gray-300 gap-2 rounded-2xl">
                 <LayoutDashboard className="w-4 h-4" />
                 My Dashboard
               </Button>
             </Link>
           ) : (
             <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-gray-300">
+              <Button variant="ghost" className="w-full justify-start text-gray-300 rounded-2xl">
                 Login
               </Button>
             </Link>
           )}
           <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-            <Button className="w-full bg-primary text-white hover:bg-primary/90">
+            <Button className="w-full btn-glow-red text-white border-0 rounded-2xl">
               Register as Donor
             </Button>
           </Link>
