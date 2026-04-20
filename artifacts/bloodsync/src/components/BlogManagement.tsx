@@ -56,16 +56,6 @@ export function BlogManagement() {
     if (!ex) { toast({ variant: "destructive", title: "Excerpt is required" }); return; }
     if (!c)  { toast({ variant: "destructive", title: "Content is required" }); return; }
 
-    // ── Author identity check: must be a signed-in user.
-    if (!user?.id) {
-      toast({
-        variant: "destructive",
-        title: "Not signed in",
-        description: "Sign in as an admin before publishing a blog.",
-      });
-      return;
-    }
-
     setSubmitting(true);
 
     // 12 s hard safety timeout so the spinner can never get stuck.
@@ -79,15 +69,22 @@ export function BlogManagement() {
     }, 12000);
 
     try {
-      // `author_uid` is the column name in the blogs table — it stores
-      // the current logged-in admin's auth user id (auth.uid()).
+      // ── Explicitly fetch the current authenticated user from Supabase.
+      //    This bypasses any stale React-context state and guarantees we
+      //    have the freshest auth.uid() to assign as author_uid.
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authUser?.id) {
+        throw new Error("Not signed in. Please log in as an admin before publishing.");
+      }
+
+      // Insert payload — keys match the blogs table columns EXACTLY.
       const payload = {
         title: t,
         excerpt: ex,
         content: c,
-        cover_url: coverUrl.trim() || null,
-        is_published: true,
-        author_uid: user.id,
+        cover_image_url: coverUrl.trim() || null,
+        author_uid: authUser.id,
       };
 
       const { data, error } = await supabase
@@ -96,7 +93,10 @@ export function BlogManagement() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Full Supabase Error:", error);
+        throw error;
+      }
 
       // Clear form fields.
       setTitle(""); setExcerpt(""); setContent(""); setCoverUrl("");
@@ -112,8 +112,8 @@ export function BlogManagement() {
         description: data?.title ? `"${data.title}" is now live.` : "নতুন ব্লগটি তালিকায় যোগ হয়েছে।",
       });
     } catch (e: any) {
-      // Show the EXACT Supabase error string for debugging.
-      console.error("[blog] publish failed:", e);
+      // Log the full error object so the exact reason is visible in DevTools.
+      console.error("Full Supabase Error:", e);
       toast({
         variant: "destructive",
         title: "Failed to publish",
