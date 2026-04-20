@@ -33,3 +33,9 @@ externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+NEXT_PUBLIC_SUPABASE_URL = "https://hidxnpzwwmirriolwttr.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable__Tp92TL7bdDo7ok-BV75Rw_HgFpTHOl"
