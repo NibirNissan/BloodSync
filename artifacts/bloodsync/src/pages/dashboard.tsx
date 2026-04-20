@@ -33,8 +33,9 @@ import {
   LayoutDashboard, UserCog, ClipboardList,
   Plus, Pencil, Trash2, X, ChevronDown, Search, Building2,
   Phone, MapPin, Calendar, TrendingUp, LogOut, Loader2,
-  ThumbsUp, ThumbsDown, FileImage, KeyRound,
+  ThumbsUp, ThumbsDown, FileImage, KeyRound, Newspaper,
 } from "lucide-react";
+import { BlogManagement } from "@/components/BlogManagement";
 import { format } from "date-fns";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -951,6 +952,22 @@ export default function Dashboard() {
             </div>
           </div>
           <DonorsTab />
+        </motion.section>
+
+        {/* ── BLOG MANAGEMENT ── */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+        >
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
+              <Newspaper className="w-4 h-4 text-purple-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Manage Blogs</h2>
+              <p className="text-xs text-gray-500">Create, publish, and manage awareness blog posts</p>
+            </div>
+          </div>
+          <BlogManagement />
         </motion.section>
 
         {/* ── ACCOUNT — Change Password ── */}

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DnaHelixBackground } from "@/components/DnaHelix";
+import { BlogList } from "@/components/BlogList";
 import { useGetStatsSummary, getGetStatsSummaryQueryKey } from "@workspace/api-client-react";
 
 export default function Home() {
@@ -141,6 +142,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* LATEST AWARENESS BLOGS — 3-column glassmorphism grid */}
+      <BlogList />
 
       {/* LIVE STATS STRIP — full width */}
       <section className="w-full px-6 sm:px-10 lg:px-16 mb-24">

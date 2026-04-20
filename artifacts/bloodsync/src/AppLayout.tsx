@@ -8,6 +8,8 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import DonorDashboard from "@/pages/donor-dashboard";
 import UserProfile from "@/pages/user-profile";
+import BlogDetail from "@/pages/blog-detail";
+import BlogIndex from "@/pages/blog-index";
 
 export default function AppLayout() {
   return (
@@ -24,6 +26,8 @@ export default function AppLayout() {
         <Route path="/admin" component={Dashboard} />
         <Route path="/donor-dashboard" component={DonorDashboard} />
         <Route path="/user-profile" component={UserProfile} />
+        <Route path="/blog" component={BlogIndex} />
+        <Route path="/blog/:id" component={BlogDetail} />
         <Route>
           <div className="flex-1 flex items-center justify-center text-white pt-32">
             <p>Page Not Found</p>

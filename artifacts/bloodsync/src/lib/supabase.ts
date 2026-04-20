@@ -54,6 +54,18 @@ export interface DonationRequest {
   created_at: string;
 }
 
+export interface Blog {
+  id: number;
+  title: string;
+  excerpt: string;
+  content: string;
+  cover_url: string | null;
+  author_uid: string | null;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DonationVerification {
   id: number;
   donor_id: number;

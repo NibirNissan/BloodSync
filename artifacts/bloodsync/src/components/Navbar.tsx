@@ -20,17 +20,18 @@ export function Navbar() {
   };
 
   // Admin link is intentionally hidden from public navigation.
-  // Bengali for content, English (Poppins) for actions.
+  // English labels rendered in Poppins for a sharp, professional feel.
   const navLinks = [
-    { href: "/", label: "হোম" },
-    { href: "/find-donors", label: "ডোনার খুঁজুন" },
+    { href: "/", label: "Home" },
+    { href: "/find-donors", label: "Find Donors" },
+    { href: "/blog", label: "Blog" },
   ];
 
   return (
     <header
-      className="fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl z-50"
+      className="fixed top-6 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl z-50 font-en"
     >
-      <div className="rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] px-3 sm:px-5 py-2.5 flex items-center justify-between gap-3">
+      <div className="rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 group pl-2 shrink-0">
           <div className="bg-primary/15 p-1.5 rounded-xl border border-primary/30 group-hover:bg-primary/25 transition-colors">
             <Droplet className="w-4 h-4 text-primary" fill="currentColor" />
@@ -38,22 +39,28 @@ export function Navbar() {
           <span className="font-bold text-base sm:text-lg tracking-tight text-white">BloodSync</span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap",
-                location === link.href
-                  ? "bg-white/10 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+        {/* Desktop Nav — centered */}
+        <nav className="hidden md:flex items-center gap-1 mx-auto">
+          {navLinks.map((link) => {
+            const isActive =
+              link.href === "/"
+                ? location === "/"
+                : location === link.href || location.startsWith(link.href + "/");
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "px-4 py-2 rounded-full text-sm font-medium tracking-tight transition-all duration-200 whitespace-nowrap",
+                  isActive
+                    ? "bg-white/10 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden md:flex items-center gap-2 shrink-0">
@@ -111,19 +118,25 @@ export function Navbar() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden mt-3 mx-2 rounded-3xl bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-2xl p-3 flex flex-col gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "px-4 py-3 rounded-2xl text-sm font-medium",
-                location === link.href ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive =
+              link.href === "/"
+                ? location === "/"
+                : location === link.href || location.startsWith(link.href + "/");
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "px-4 py-3 rounded-2xl text-sm font-medium",
+                  isActive ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5"
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           <div className="h-px bg-white/10 my-1" />
           {isAuthed ? (
             <>
