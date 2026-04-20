@@ -29,17 +29,19 @@ export default function UserProfile() {
   const [, setLocation] = useLocation();
   const { user, profile, loading: authLoading } = useAuth();
 
-  // Pull all requests this user has made.
-  const { data: requests, isLoading: reqLoading } = useQuery({
+  // Pull all requests this user has made. Fail silently (return []) if the
+  // table isn't ready yet so we never get stuck on a retry-loop spinner.
+  const { data: requests } = useQuery({
     queryKey: ["supabase", "my-requests", user?.id ?? "anon"],
     enabled: !!user?.id,
+    retry: false,
     queryFn: async (): Promise<RequestRow[]> => {
       const { data, error } = await supabase
         .from("requests")
         .select("id, donor_id, status, created_at")
         .eq("requester_uid", user!.id)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+      if (error) return [];
       return (data ?? []) as RequestRow[];
     },
   });
@@ -53,12 +55,13 @@ export default function UserProfile() {
   const { data: donors } = useQuery({
     queryKey: ["supabase", "my-requests-donors", donorIds.join(",")],
     enabled: donorIds.length > 0,
+    retry: false,
     queryFn: async (): Promise<Donor[]> => {
       const { data, error } = await supabase
         .from("donors")
         .select("*")
         .in("id", donorIds);
-      if (error) throw error;
+      if (error) return [];
       return (data ?? []) as Donor[];
     },
   });
@@ -73,7 +76,7 @@ export default function UserProfile() {
     if (!authLoading && !user) setLocation("/login");
   }, [authLoading, user, setLocation]);
 
-  if (authLoading || (user && reqLoading)) {
+  if (authLoading) {
     return (
       <div className="min-h-screen pt-32 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />

@@ -1,5 +1,6 @@
 import { Switch, Route } from "wouter";
 import { Navbar } from "@/components/Navbar";
+import { RoleGuard } from "@/components/RoleGuard";
 import Home from "@/pages/home";
 import FindDonors from "@/pages/find-donors";
 import Register from "@/pages/register";
@@ -16,6 +17,7 @@ export default function AppLayout() {
     <div className="min-h-[100dvh] flex flex-col relative selection:bg-primary/40 selection:text-white">
       <div className="app-bg" aria-hidden />
       <Navbar />
+      <RoleGuard />
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/find-donors" component={FindDonors} />
