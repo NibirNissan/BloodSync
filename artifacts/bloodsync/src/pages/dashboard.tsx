@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { resolveProofUrl } from "@/lib/upload";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
@@ -759,18 +760,35 @@ function VerificationsTab() {
                       <td className="px-4 py-3 text-gray-300">{details.name ?? "—"}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs max-w-[140px] truncate">{details.hospital ?? "—"}</td>
                       <td className="px-4 py-3">
-                        {v.proof_document_url ? (
-                          <button
-                            onClick={() => setProofModal(v.proof_document_url!)}
-                            className="w-10 h-10 rounded-lg overflow-hidden border border-white/15 hover:border-white/30 transition-colors"
-                          >
-                            <img src={v.proof_document_url} alt="Proof" className="w-full h-full object-cover" />
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-600 flex items-center gap-1">
-                            <FileImage className="w-3.5 h-3.5" /> None
-                          </span>
-                        )}
+                        {(() => {
+                          const proofSrc = resolveProofUrl(v.proof_document_url);
+                          return proofSrc ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setProofModal(proofSrc)}
+                                title="Click to enlarge"
+                                className="group relative w-12 h-12 rounded-lg overflow-hidden border border-white/15 hover:border-primary/50 transition-all hover:shadow-[0_0_15px_rgba(220,38,38,0.35)]"
+                              >
+                                <img src={proofSrc} alt="Proof document" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <Eye className="w-4 h-4 text-white" />
+                                </div>
+                              </button>
+                              <a
+                                href={proofSrc}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-primary/80 hover:text-primary underline underline-offset-2"
+                              >
+                                Open
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-600 flex items-center gap-1">
+                              <FileImage className="w-3.5 h-3.5" /> None
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{format(new Date(v.created_at), "MMM d, yyyy")}</td>
                       <td className="px-4 py-3 text-center">

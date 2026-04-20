@@ -22,32 +22,9 @@ import {
   Sparkles, Award,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { uploadVerificationImage } from "@/lib/upload";
 
-async function compressImageToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX = 800;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round((h * MAX) / w); w = MAX; }
-          else { w = Math.round((w * MAX) / h); h = MAX; }
-        }
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
-      };
-      img.onerror = reject;
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 type VerifyPhase = "form" | "submitting" | "pending";
 
@@ -73,6 +50,10 @@ function VerifyRecentDonationSection({ donorId }: { donorId: number }) {
       toast({ title: "Invalid file", description: "Please upload an image.", variant: "destructive" });
       return;
     }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast({ title: "File too large", description: "Maximum file size is 10 MB.", variant: "destructive" });
+      return;
+    }
     setDocFile(file);
     setDocPreview(URL.createObjectURL(file));
   }, [toast]);
@@ -87,8 +68,18 @@ function VerifyRecentDonationSection({ donorId }: { donorId: number }) {
     setPhase("submitting");
     let proofUrl: string | undefined;
     if (docFile) {
-      try { proofUrl = await compressImageToBase64(docFile); }
-      catch { toast({ title: "Image processing failed", variant: "destructive" }); setPhase("form"); return; }
+      try {
+        const { objectPath } = await uploadVerificationImage(docFile, donorId);
+        proofUrl = objectPath;
+      } catch (err) {
+        toast({
+          title: "Upload failed",
+          description: err instanceof Error ? err.message : "Could not upload proof image.",
+          variant: "destructive",
+        });
+        setPhase("form");
+        return;
+      }
     }
     const recipient = recipientName.trim();
     const hosp = hospital.trim();
