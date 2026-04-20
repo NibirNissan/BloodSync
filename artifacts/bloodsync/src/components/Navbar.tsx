@@ -1,17 +1,24 @@
 import { Link, useLocation } from "wouter";
-import { Droplet, Menu, X, LayoutDashboard } from "lucide-react";
+import { Droplet, Menu, X, LayoutDashboard, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDonor, setIsDonor] = useState(false);
 
   useEffect(() => {
     setIsDonor(!!localStorage.getItem("bloodsync_donor_id"));
   }, [location]);
+
+  const handleSignOut = () => {
+    localStorage.removeItem("bloodsync_donor_id");
+    setIsDonor(false);
+    setMobileMenuOpen(false);
+    setLocation("/");
+  };
 
   // Admin link is intentionally hidden from public navigation.
   const navLinks = [
@@ -49,34 +56,46 @@ export function Navbar() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2 shrink-0">
           {isDonor ? (
-            <Link href="/donor-dashboard">
+            <>
+              <Link href="/donor-dashboard" className="inline-flex">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "h-9 px-4 rounded-full text-sm gap-2 transition-all whitespace-nowrap",
+                    location === "/donor-dashboard"
+                      ? "bg-white/10 text-white"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  My Dashboard
+                </Button>
+              </Link>
               <Button
+                onClick={handleSignOut}
                 variant="ghost"
-                className={cn(
-                  "h-9 px-4 rounded-full text-sm gap-2 transition-all",
-                  location === "/donor-dashboard"
-                    ? "bg-white/10 text-white"
-                    : "text-gray-300 hover:text-white hover:bg-white/5"
-                )}
+                className="h-9 px-4 rounded-full text-sm gap-2 whitespace-nowrap text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10"
               >
-                <LayoutDashboard className="w-4 h-4" />
-                My Dashboard
+                <LogOut className="w-4 h-4" />
+                Sign Out
               </Button>
-            </Link>
+            </>
           ) : (
-            <Link href="/login">
-              <Button variant="ghost" className="h-9 px-4 rounded-full text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                Login
-              </Button>
-            </Link>
+            <>
+              <Link href="/login" className="inline-flex">
+                <Button variant="ghost" className="h-9 px-4 rounded-full text-sm text-gray-300 hover:text-white hover:bg-white/5 whitespace-nowrap">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register" className="inline-flex">
+                <Button className="h-9 px-4 rounded-full text-sm font-semibold btn-glow-red text-white border-0 whitespace-nowrap">
+                  Register as Donor
+                </Button>
+              </Link>
+            </>
           )}
-          <Link href="/register">
-            <Button className="h-9 px-4 rounded-full text-sm font-semibold btn-glow-red text-white border-0">
-              Register as Donor
-            </Button>
-          </Link>
         </div>
 
         {/* Mobile Toggle */}
@@ -107,24 +126,36 @@ export function Navbar() {
           ))}
           <div className="h-px bg-white/10 my-1" />
           {isDonor ? (
-            <Link href="/donor-dashboard" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-gray-300 gap-2 rounded-2xl">
-                <LayoutDashboard className="w-4 h-4" />
-                My Dashboard
+            <>
+              <Link href="/donor-dashboard" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-gray-300 gap-2 rounded-2xl">
+                  <LayoutDashboard className="w-4 h-4" />
+                  My Dashboard
+                </Button>
+              </Link>
+              <Button
+                onClick={handleSignOut}
+                variant="ghost"
+                className="w-full justify-start text-gray-300 gap-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
               </Button>
-            </Link>
+            </>
           ) : (
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start text-gray-300 rounded-2xl">
-                Login
-              </Button>
-            </Link>
+            <>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="ghost" className="w-full justify-start text-gray-300 rounded-2xl">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="w-full btn-glow-red text-white border-0 rounded-2xl">
+                  Register as Donor
+                </Button>
+              </Link>
+            </>
           )}
-          <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-            <Button className="w-full btn-glow-red text-white border-0 rounded-2xl">
-              Register as Donor
-            </Button>
-          </Link>
         </div>
       )}
     </header>
