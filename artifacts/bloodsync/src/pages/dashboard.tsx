@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { resolveProofUrl } from "@/lib/upload";
 import { supabase } from "@/lib/supabase";
@@ -821,15 +821,73 @@ function VerificationsTab() {
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, profile, loading, signOut } = useAuth();
+  const { toast } = useToast();
 
-  // Auth + role gate. ONLY block on `loading` (the auth provider's own
-  // single boolean). It flips to false after the profile fetch settles,
-  // success or failure — so we never spin forever waiting for a profile
-  // row that doesn't exist or is blocked by RLS.
-  if (loading) {
+  // ── Emergency 5-second timeout ──────────────────────────────────────
+  // The auth provider always settles in finite time, but as a defensive
+  // belt-and-suspenders measure we trip a `timedOut` flag if `loading`
+  // is still true after 5 s. The UI then swaps the spinner for a clear
+  // "Data Fetch Timeout" card with a Retry button.
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (!loading) { setTimedOut(false); return; }
+    const id = window.setTimeout(() => setTimedOut(true), 5000);
+    return () => window.clearTimeout(id);
+  }, [loading]);
+
+  // ── Role re-verification ────────────────────────────────────────────
+  // Once auth has settled (loading=false), if there is no signed-in user
+  // OR the resolved profile role isn't admin, redirect to /login with a
+  // toast. We do NOT redirect while still loading — that would cause a
+  // flash-of-login on every refresh.
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      setLocation("/login");
+      return;
+    }
+    if (profile && profile.role !== "admin") {
+      toast({
+        title: "Access denied",
+        description: "Admin role required to view this page.",
+        variant: "destructive",
+      });
+      setLocation("/login");
+    }
+    // Note: profile === null is handled by the "Profile not found" UI
+    // below (table missing / RLS), NOT by an automatic redirect, so the
+    // operator can read the actionable error and run the SQL scripts.
+  }, [loading, user, profile, setLocation, toast]);
+
+  // Spinner — only while truly loading and not yet past the 5 s budget.
+  if (loading && !timedOut) {
     return (
       <div className="min-h-screen pt-32 flex items-center justify-center w-full">
         <Loader2 className="w-7 h-7 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  // Hard timeout fallback — auth/profile fetch never settled in 5 s.
+  if (loading && timedOut) {
+    return (
+      <div className="min-h-screen pt-32 pb-20 flex items-center justify-center w-full px-6">
+        <GlassCard className="p-8 max-w-md text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Error: Data Fetch Timeout</h2>
+          <p className="text-sm text-gray-400 mb-5 font-en">
+            The dashboard couldn't load within 5 seconds. Your network or
+            Supabase project may be unreachable.
+          </p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="w-full h-11 btn-glow-red text-white border-0 rounded-xl"
+          >
+            Retry
+          </Button>
+        </GlassCard>
       </div>
     );
   }
