@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DnaHelixBackground } from "@/components/DnaHelix";
 import { BlogList } from "@/components/BlogList";
+import { HeroSection } from "@/components/HeroSection";
 import { useGetStatsSummary, getGetStatsSummaryQueryKey } from "@workspace/api-client-react";
 
 export default function Home() {
@@ -81,67 +82,8 @@ export default function Home() {
       {/* All page content sits in front via z-10. */}
       <div className="relative z-10">
 
-      {/* HERO — full width with breathing horizontal padding */}
-      <section className="w-full px-6 sm:px-10 lg:px-16 mb-28">
-        <div className="flex flex-col items-center text-center space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-md text-primary text-sm font-medium"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-            </span>
-            জরুরিভাবে রক্তদাতা প্রয়োজন
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] max-w-6xl"
-            style={{ textShadow: "0 2px 24px rgba(0,0,0,0.85)" }}
-          >
-            <span className="text-white">কারো জীবনের</span>
-            <br />
-            <span
-              className="text-red-500 inline-block"
-              style={{ filter: "drop-shadow(0 0 18px rgba(239,0,51,0.55))" }}
-            >
-              স্পন্দন হোন আজই।
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg md:text-xl text-white/85 max-w-2xl leading-relaxed"
-            style={{ textShadow: "0 1px 14px rgba(0,0,0,0.85)" }}
-          >
-            চিকিৎসা জরুরি অবস্থায় সরাসরি মানুষের সাথে যুক্ত হোন। প্রতিটি দান সর্বোচ্চ তিনটি জীবন বাঁচাতে পারে। আজই নিবন্ধন করুন অথবা আপনার কাছাকাছি একজন ডোনার খুঁজুন।
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
-          >
-            <Link href="/find-donors">
-              <Button
-                size="lg"
-                className="w-full sm:w-auto bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 backdrop-blur-md text-white text-base h-14 px-8 rounded-2xl font-semibold transition-all"
-              >
-                Find Donors
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button
-                size="lg"
-                className="w-full sm:w-auto btn-glow-red text-white text-base h-14 px-8 rounded-2xl font-semibold group border-0"
-              >
-                Register as Donor
-                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+      {/* HERO — two-column glass-panel + doctor composition */}
+      <HeroSection />
 
       {/* LATEST AWARENESS BLOGS — 3-column glassmorphism grid */}
       <BlogList />
