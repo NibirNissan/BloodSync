@@ -49,10 +49,10 @@ async function compressImageToBase64(file: File): Promise<string> {
   });
 }
 
-type VerifyPhase = "idle" | "form" | "submitting" | "success";
+type VerifyPhase = "form" | "submitting" | "pending";
 
-// ─── Verify Donation Form (modal-style inside dashboard) ─────────────────────
-function VerifyDonationForm({ donorId, onClose, onSuccess }: { donorId: number; onClose: () => void; onSuccess: () => void }) {
+// ─── Verify Recent Donation (inline section embedded in dashboard) ───────────
+function VerifyRecentDonationSection({ donorId }: { donorId: number }) {
   const [recipientName, setRecipientName] = useState("");
   const [hospital, setHospital] = useState("");
   const [contact, setContact] = useState("");
@@ -60,6 +60,9 @@ function VerifyDonationForm({ donorId, onClose, onSuccess }: { donorId: number; 
   const [docPreview, setDocPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<VerifyPhase>("form");
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [submittedRecipient, setSubmittedRecipient] = useState("");
+  const [submittedHospital, setSubmittedHospital] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -74,8 +77,10 @@ function VerifyDonationForm({ donorId, onClose, onSuccess }: { donorId: number; 
     setDocPreview(URL.createObjectURL(file));
   }, [toast]);
 
+  const isValid = recipientName.trim().length > 1 && hospital.trim().length > 1;
+
   const handleSubmit = async () => {
-    if (!recipientName.trim() || !hospital.trim()) {
+    if (!isValid) {
       toast({ title: "Missing fields", description: "Recipient name and hospital are required.", variant: "destructive" });
       return;
     }
@@ -85,105 +90,305 @@ function VerifyDonationForm({ donorId, onClose, onSuccess }: { donorId: number; 
       try { proofUrl = await compressImageToBase64(docFile); }
       catch { toast({ title: "Image processing failed", variant: "destructive" }); setPhase("form"); return; }
     }
+    const recipient = recipientName.trim();
+    const hosp = hospital.trim();
     createVerification(
-      { data: { donor_id: donorId, recipient_details: JSON.stringify({ name: recipientName.trim(), hospital: hospital.trim(), contact: contact.trim() }), proof_document_url: proofUrl } },
+      { data: { donor_id: donorId, recipient_details: JSON.stringify({ name: recipient, hospital: hosp, contact: contact.trim() }), proof_document_url: proofUrl } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListVerificationsQueryKey() });
-          setPhase("success");
-          setTimeout(() => onSuccess(), 1800);
+          setSubmittedAt(new Date());
+          setSubmittedRecipient(recipient);
+          setSubmittedHospital(hosp);
+          setPhase("pending");
         },
         onError: () => { toast({ title: "Submission failed", variant: "destructive" }); setPhase("form"); },
       }
     );
   };
 
+  const resetForm = () => {
+    setRecipientName(""); setHospital(""); setContact("");
+    setDocFile(null); setDocPreview(null);
+    setSubmittedAt(null); setSubmittedRecipient(""); setSubmittedHospital("");
+    setPhase("form");
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        className="relative w-full max-w-md"
-      >
-        <GlassCard className="p-6 space-y-4">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center">
-                <BadgeCheck className="w-5 h-5 text-primary" />
+    <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 overflow-hidden shadow-[0_8px_50px_rgba(0,0,0,0.4)]">
+      {/* Ambient amber glow when pending, red glow on form */}
+      <div className={`absolute -top-32 -left-32 w-72 h-72 blur-[100px] rounded-full pointer-events-none transition-colors duration-700 ${
+        phase === "pending" ? "bg-amber-500/15" : "bg-primary/8"
+      }`} />
+
+      {/* Header */}
+      <div className="relative flex items-start justify-between mb-6 flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-11 h-11 rounded-2xl border flex items-center justify-center transition-colors ${
+            phase === "pending"
+              ? "bg-amber-500/15 border-amber-500/30"
+              : "bg-primary/15 border-primary/30"
+          }`}>
+            {phase === "pending"
+              ? <Clock className="w-5 h-5 text-amber-400" />
+              : <BadgeCheck className="w-5 h-5 text-primary" />}
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white">Verify Recent Donation</h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {phase === "pending"
+                ? "Your submission is awaiting admin review"
+                : "Submit proof to add this donation to your verified history"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {/* ─── PHASE: FORM ─── */}
+        {phase === "form" && (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.35 }}
+            className="relative grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            {/* Left column — fields */}
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-400 uppercase tracking-[0.15em] font-medium flex items-center gap-1.5">
+                  <User className="w-3 h-3" /> Recipient Name <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. Rahim Uddin"
+                  value={recipientName}
+                  onChange={e => setRecipientName(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary focus-visible:border-primary/40 placeholder:text-gray-600"
+                />
               </div>
-              <div>
-                <h3 className="text-white font-semibold">Verify Donation</h3>
-                <p className="text-xs text-gray-500">Submit proof of your donation</p>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-400 uppercase tracking-[0.15em] font-medium flex items-center gap-1.5">
+                  <Building2 className="w-3 h-3" /> Hospital Name <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  placeholder="e.g. Dhaka Medical College Hospital"
+                  value={hospital}
+                  onChange={e => setHospital(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary focus-visible:border-primary/40 placeholder:text-gray-600"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-gray-400 uppercase tracking-[0.15em] font-medium flex items-center gap-1.5">
+                  <Phone className="w-3 h-3" /> Recipient Contact Number
+                  <span className="text-gray-600 normal-case tracking-normal text-[10px]">(optional)</span>
+                </Label>
+                <Input
+                  placeholder="+880 1712 345 678"
+                  value={contact}
+                  onChange={e => setContact(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus-visible:ring-primary focus-visible:border-primary/40 placeholder:text-gray-600"
+                />
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-white"><X className="w-4 h-4" /></button>
-          </div>
 
-          <AnimatePresence mode="wait">
-            {phase === "form" && (
-              <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-400 flex items-center gap-1.5"><User className="w-3 h-3" /> Recipient Name *</Label>
-                  <Input placeholder="e.g. Rahim Uddin" value={recipientName} onChange={e => setRecipientName(e.target.value)} className="bg-white/5 border-white/10 text-white h-11 rounded-xl focus-visible:ring-primary placeholder:text-gray-600" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-400 flex items-center gap-1.5"><Building2 className="w-3 h-3" /> Hospital *</Label>
-                  <Input placeholder="e.g. Dhaka Medical College" value={hospital} onChange={e => setHospital(e.target.value)} className="bg-white/5 border-white/10 text-white h-11 rounded-xl focus-visible:ring-primary placeholder:text-gray-600" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-400 flex items-center gap-1.5"><Phone className="w-3 h-3" /> Recipient Contact <span className="text-gray-600">(optional)</span></Label>
-                  <Input placeholder="+880 1712-345678" value={contact} onChange={e => setContact(e.target.value)} className="bg-white/5 border-white/10 text-white h-11 rounded-xl focus-visible:ring-primary placeholder:text-gray-600" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-400 flex items-center gap-1.5"><FileImage className="w-3 h-3" /> Proof Document <span className="text-gray-600">(optional)</span></Label>
-                  {docPreview ? (
-                    <div className="relative rounded-xl overflow-hidden border border-white/10 bg-white/5">
-                      <img src={docPreview} alt="Document preview" className="w-full max-h-32 object-cover" />
-                      <button onClick={() => { setDocFile(null); setDocPreview(null); }} className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white"><X className="w-3.5 h-3.5" /></button>
-                    </div>
-                  ) : (
-                    <div
-                      onDragOver={e => { e.preventDefault(); setDragging(true); }}
-                      onDragLeave={() => setDragging(false)}
-                      onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`cursor-pointer border-2 border-dashed rounded-xl p-5 flex flex-col items-center gap-2 transition-all ${dragging ? "border-primary/60 bg-primary/8" : "border-white/10 bg-white/3 hover:border-white/20"}`}
+            {/* Right column — upload zone + submit */}
+            <div className="flex flex-col gap-5">
+              <div className="space-y-1.5 flex-1 flex flex-col">
+                <Label className="text-xs text-gray-400 uppercase tracking-[0.15em] font-medium flex items-center gap-1.5">
+                  <FileImage className="w-3 h-3" /> Proof Document
+                  <span className="text-gray-600 normal-case tracking-normal text-[10px]">(hospital slip / photo)</span>
+                </Label>
+                {docPreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-white/5 flex-1 min-h-[200px]">
+                    <img src={docPreview} alt="Document preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    <button
+                      onClick={() => { setDocFile(null); setDocPreview(null); }}
+                      className="absolute top-3 right-3 w-8 h-8 bg-black/70 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/90 transition-colors"
                     >
-                      <Upload className={`w-5 h-5 ${dragging ? "text-primary" : "text-gray-600"}`} />
-                      <p className="text-xs text-gray-400">Drag & drop or <span className="text-primary font-medium">browse</span></p>
-                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                      <X className="w-4 h-4" />
+                    </button>
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 text-xs text-white/90">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="truncate font-medium">{docFile?.name ?? "Document attached"}</span>
                     </div>
-                  )}
-                </div>
-                <Button onClick={handleSubmit} disabled={!recipientName.trim() || !hospital.trim()} className="w-full h-11 rounded-xl btn-glow-red text-white border-0 font-semibold disabled:opacity-40">
-                  Submit for Verification
-                </Button>
-              </motion.div>
-            )}
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`cursor-pointer border-2 border-dashed rounded-2xl flex-1 min-h-[200px] flex flex-col items-center justify-center gap-3 px-6 transition-all ${
+                      dragging
+                        ? "border-primary/60 bg-primary/10 scale-[1.01]"
+                        : "border-white/15 bg-white/[0.03] hover:bg-white/10 hover:border-white/25"
+                    }`}
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${
+                      dragging
+                        ? "bg-primary/20 border border-primary/40 shadow-[0_0_25px_rgba(239,68,68,0.4)]"
+                        : "bg-white/5 border border-white/10"
+                    }`}>
+                      <Upload className={`w-6 h-6 ${dragging ? "text-primary" : "text-gray-500"}`} />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-white font-medium mb-1">
+                        {dragging ? "Drop to upload" : "Drag & drop your document"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        or <span className="text-primary font-semibold underline-offset-2 hover:underline">click to browse</span> · PNG, JPG up to 10MB
+                      </p>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                    />
+                  </div>
+                )}
+              </div>
 
-            {phase === "submitting" && (
-              <motion.div key="submitting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4 py-8">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <p className="text-white text-sm">Submitting verification...</p>
-              </motion.div>
-            )}
+              {/* Submit — vibrant glow when valid */}
+              <Button
+                onClick={handleSubmit}
+                disabled={!isValid}
+                className={`w-full h-12 rounded-xl text-base font-semibold border-0 transition-all duration-300 ${
+                  isValid
+                    ? "btn-glow-red text-white"
+                    : "bg-white/[0.04] text-gray-600 cursor-not-allowed"
+                }`}
+              >
+                {isValid ? (
+                  <>
+                    <BadgeCheck className="w-4 h-4 mr-2" />
+                    Submit for Verification
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4 mr-2 opacity-40" />
+                    Fill required fields
+                  </>
+                )}
+              </Button>
+            </div>
+          </motion.div>
+        )}
 
-            {phase === "success" && (
-              <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-3 py-6">
-                <div className="w-14 h-14 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
-                  <Clock className="w-7 h-7 text-amber-400" />
-                </div>
-                <div className="text-center">
-                  <h4 className="text-white font-bold text-base mb-1">Submitted</h4>
-                  <p className="text-xs text-gray-400 max-w-[260px]">Your donation is now pending admin review.</p>
+        {/* ─── PHASE: SUBMITTING ─── */}
+        {phase === "submitting" && (
+          <motion.div
+            key="submitting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="relative flex flex-col items-center gap-4 py-12"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full" />
+              <Loader2 className="w-10 h-10 text-primary animate-spin relative" />
+            </div>
+            <p className="text-white text-sm font-medium">Submitting your verification...</p>
+            <p className="text-xs text-gray-500">Securely uploading proof document</p>
+          </motion.div>
+        )}
+
+        {/* ─── PHASE: PENDING VERIFICATION ─── */}
+        {phase === "pending" && (
+          <motion.div
+            key="pending"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative"
+          >
+            <div className="flex flex-col items-center text-center py-8 px-4">
+              {/* Glowing yellow/orange badge */}
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", bounce: 0.45, delay: 0.1 }}
+                className="relative mb-5"
+              >
+                {/* Outer pulsing ambient glow */}
+                <motion.div
+                  className="absolute inset-0 bg-amber-400/30 blur-2xl rounded-full"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-amber-400/30 to-amber-600/10 border-2 border-amber-400/40 flex items-center justify-center shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+                  <Clock className="w-9 h-9 text-amber-300" strokeWidth={2.5} />
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassCard>
-      </motion.div>
+
+              {/* Glowing pill badge */}
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-200 text-xs font-bold uppercase tracking-[0.2em] mb-4 shadow-[0_0_25px_rgba(251,191,36,0.3)]"
+              >
+                <span className="relative flex w-2 h-2">
+                  <span className="absolute inline-flex w-full h-full rounded-full bg-amber-400 opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full w-2 h-2 bg-amber-400" />
+                </span>
+                Pending Verification
+              </motion.div>
+
+              <motion.h4
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                className="text-2xl font-bold text-white mb-2"
+              >
+                Submission Received
+              </motion.h4>
+              <motion.p
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+                className="text-sm text-gray-400 max-w-md mb-6"
+              >
+                Our admins are reviewing your proof document. You'll be notified once it's approved — typically within 24 hours.
+              </motion.p>
+
+              {/* Submitted summary */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+                className="w-full max-w-md bg-white/[0.03] border border-white/10 rounded-2xl p-4 space-y-2.5 text-left"
+              >
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 flex items-center gap-1.5"><User className="w-3 h-3" /> Recipient</span>
+                  <span className="text-white font-medium truncate ml-3">{submittedRecipient}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 flex items-center gap-1.5"><Building2 className="w-3 h-3" /> Hospital</span>
+                  <span className="text-white font-medium truncate ml-3">{submittedHospital}</span>
+                </div>
+                {submittedAt && (
+                  <div className="flex items-center justify-between text-sm pt-2.5 border-t border-white/5">
+                    <span className="text-gray-500 flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Submitted</span>
+                    <span className="text-amber-300 font-medium">{format(submittedAt, "MMM d, yyyy · h:mm a")}</span>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Submit another */}
+              <motion.button
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+                onClick={resetForm}
+                className="mt-6 inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Verify another donation
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -294,7 +499,6 @@ export default function DonorDashboard() {
   const queryClient = useQueryClient();
   const [donorId, setDonorId] = useState<number | null>(null);
   const [isToggling, setIsToggling] = useState(false);
-  const [verifyOpen, setVerifyOpen] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("bloodsync_donor_id");
@@ -417,18 +621,6 @@ export default function DonorDashboard() {
 
   return (
     <div className="min-h-screen pt-32 pb-20 w-full px-6 sm:px-10 lg:px-16">
-
-      {/* Verification Modal */}
-      <AnimatePresence>
-        {verifyOpen && (
-          <VerifyDonationForm
-            donorId={donor.id}
-            onClose={() => setVerifyOpen(false)}
-            onSuccess={() => setVerifyOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
@@ -582,21 +774,20 @@ export default function DonorDashboard() {
           </div>
         </motion.div>
 
-        {/* TIMELINE + ACTION */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+        {/* VERIFY RECENT DONATION — inline section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+          className="mb-6"
+        >
+          <VerifyRecentDonationSection donorId={donor.id} />
+        </motion.div>
+
+        {/* TIMELINE */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8">
-            <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-              <div>
-                <h3 className="text-xl font-bold text-white mb-1">Donation Timeline</h3>
-                <p className="text-sm text-gray-500">Your history of verified blood donations and life-saving acts</p>
-              </div>
-              <Button
-                onClick={() => setVerifyOpen(true)}
-                className="btn-glow-red text-white border-0 rounded-xl px-5 h-10 text-sm font-semibold"
-              >
-                <Plus className="w-4 h-4 mr-1.5" />
-                Verify Donation
-              </Button>
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-white mb-1">Donation Timeline</h3>
+              <p className="text-sm text-gray-500">Your history of verified blood donations and life-saving acts</p>
             </div>
 
             <DonationTimeline items={timelineItems} />
