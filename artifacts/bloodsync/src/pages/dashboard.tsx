@@ -822,10 +822,11 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, profile, loading, signOut } = useAuth();
 
-  // Auth + role gate. While loading OR while the profile row for an
-  // authenticated user is still resolving, show a loader so admins
-  // never momentarily see the "Access denied" card on refresh.
-  if (loading || (user && !profile)) {
+  // Auth + role gate. ONLY block on `loading` (the auth provider's own
+  // single boolean). It flips to false after the profile fetch settles,
+  // success or failure — so we never spin forever waiting for a profile
+  // row that doesn't exist or is blocked by RLS.
+  if (loading) {
     return (
       <div className="min-h-screen pt-32 flex items-center justify-center w-full">
         <Loader2 className="w-7 h-7 text-primary animate-spin" />
@@ -855,16 +856,51 @@ export default function Dashboard() {
     );
   }
 
-  if (profile?.role !== "admin") {
+  // Profile missing entirely — most likely the `profiles` table hasn't
+  // been created yet, RLS is blocking the read, or no profile row exists
+  // for this user. Show a clear, actionable error instead of a spinner.
+  if (!profile) {
+    return (
+      <div className="min-h-screen pt-32 pb-20 flex items-center justify-center w-full px-6">
+        <GlassCard className="p-8 max-w-md text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Profile not found</h2>
+          <p className="text-sm text-gray-400 mb-2">
+            We couldn't load a profile row for <span className="font-en text-white/90">{user.email}</span>.
+          </p>
+          <p className="text-xs text-gray-500 mb-5 font-en leading-relaxed">
+            This usually means the <code className="text-amber-300">profiles</code> table or its
+            row-level-security policies haven't been set up in Supabase yet. Run the
+            <code className="text-amber-300"> supabase/init.sql</code> and
+            <code className="text-amber-300"> supabase/admin_rls.sql</code> scripts,
+            then refresh.
+          </p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="w-full h-11 btn-glow-red text-white border-0 rounded-xl"
+          >
+            Retry
+          </Button>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  if (profile.role !== "admin") {
     return (
       <div className="min-h-screen pt-32 pb-20 flex items-center justify-center w-full px-6">
         <GlassCard className="p-8 max-w-sm text-center">
           <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-6 h-6 text-amber-400" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-1">Access denied</h2>
+          <h2 className="text-xl font-bold text-white mb-2">Access denied</h2>
           <p className="text-sm text-gray-500">
             এই এলাকা শুধুমাত্র Super Admin-দের জন্য সংরক্ষিত।
+          </p>
+          <p className="mt-3 text-xs text-gray-500 font-en">
+            Current role: <span className="text-amber-300">{profile.role}</span>
           </p>
         </GlassCard>
       </div>

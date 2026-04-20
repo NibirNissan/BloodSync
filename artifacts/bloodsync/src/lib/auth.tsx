@@ -42,12 +42,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (uid: string | null) => {
     if (!uid) { setProfile(null); return; }
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", uid)
-      .maybeSingle();
-    setProfile((data as Profile | null) ?? null);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", uid)
+        .maybeSingle();
+      if (error) {
+        // Table missing / RLS denied — log and clear so the UI can react.
+        console.warn("[auth] profile fetch error:", error.message);
+        setProfile(null);
+        return;
+      }
+      const p = (data as Profile | null) ?? null;
+      console.log("[auth] profile loaded:", p ? { id: p.id, role: p.role } : null);
+      setProfile(p);
+    } catch (err) {
+      console.warn("[auth] profile fetch threw:", err);
+      setProfile(null);
+    }
   };
 
   useEffect(() => {
