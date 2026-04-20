@@ -8,13 +8,9 @@ import { Button } from "@/components/ui/button";
 import { DnaHelixBackground } from "@/components/DnaHelix";
 import { BlogList } from "@/components/BlogList";
 import { HeroSection } from "@/components/HeroSection";
-import { useGetStatsSummary, getGetStatsSummaryQueryKey } from "@workspace/api-client-react";
+import { LiveStats } from "@/components/LiveStats";
 
 export default function Home() {
-  const { data: stats, isLoading } = useGetStatsSummary({
-    query: { queryKey: getGetStatsSummaryQueryKey() }
-  });
-
   const features = [
     {
       icon: Search,
@@ -66,12 +62,6 @@ export default function Home() {
     },
   ];
 
-  const liveStats = [
-    { label: "সক্রিয় ডোনার", value: stats?.willing_donors, icon: Users, color: "text-blue-400" },
-    { label: "রক্ষিত জীবন", value: stats?.completed_donations, icon: Droplet, color: "text-primary" },
-    { label: "সম্পন্ন অনুরোধ", value: stats?.total_requests, icon: ShieldCheck, color: "text-emerald-400" },
-  ];
-
   return (
     <div className="relative min-h-screen pt-32 pb-24 w-full">
 
@@ -88,28 +78,8 @@ export default function Home() {
       {/* LATEST AWARENESS BLOGS — 3-column glassmorphism grid */}
       <BlogList />
 
-      {/* LIVE STATS STRIP — full width */}
-      <section className="w-full px-6 sm:px-10 lg:px-16 mb-24">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="bg-[#0a0a0c]/80 backdrop-blur-2xl border border-white/15 rounded-3xl px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8 shadow-2xl"
-        >
-          {liveStats.map((s, i) => (
-            <div key={s.label} className={`text-center ${i > 0 ? "md:border-l md:border-white/10" : ""}`}>
-              <div className={`inline-flex w-11 h-11 rounded-2xl ${s.color.replace("text", "bg")}/10 border border-white/10 items-center justify-center mb-3`}>
-                <s.icon className={`w-5 h-5 ${s.color}`} />
-              </div>
-              <p className="text-5xl font-black text-white tabular-nums font-en">
-                {isLoading ? <span className="text-gray-700">—</span> : s.value ?? 0}
-              </p>
-              <p className="text-xs text-white/70 tracking-wide mt-2 font-medium">{s.label}</p>
-            </div>
-          ))}
-        </motion.div>
-      </section>
+      {/* LIVE IMPACT — animated counters from Supabase */}
+      <LiveStats />
 
       {/* FEATURE CARDS — full width grid */}
       <section className="w-full px-6 sm:px-10 lg:px-16">
