@@ -33,17 +33,14 @@ import {
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-const DISTRICTS = [
-  "Dhaka", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Barisal",
-  "Rangpur", "Mymensingh", "Comilla", "Narayanganj", "Gazipur",
-  "Tangail", "Jessore", "Bogura", "Cox's Bazar", "Jamalpur", "Other",
-];
+import { BD_DIVISIONS, districtsForDivision } from "@/data/bdLocations";
 
 const schema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   email: z.string().email("Please enter a valid email."),
   password: z.string().min(6, "Password must be at least 6 characters."),
   blood_group: z.string({ required_error: "Please select a blood group." }).min(1, "Please select a blood group."),
+  division: z.string({ required_error: "Please select your division." }).min(1, "Please select your division."),
   district: z.string({ required_error: "Please select your district." }).min(1, "Please select your district."),
   whatsapp_number: z
     .string()
@@ -68,6 +65,7 @@ export default function Register() {
       email: "",
       password: "",
       blood_group: undefined,
+      division: undefined,
       district: undefined,
       whatsapp_number: "",
       smoker: false,
@@ -98,6 +96,7 @@ export default function Register() {
         .insert({
           name: values.name,
           blood_group: values.blood_group,
+          division: values.division,
           district: values.district,
           whatsapp_number: values.whatsapp_number,
           smoker: values.smoker,
@@ -238,7 +237,7 @@ export default function Register() {
                 />
               </div>
 
-              {/* Blood Group + District (side by side) */}
+              {/* Blood Group (full width on mobile, half on desktop) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <FormField
                   control={form.control}
@@ -268,24 +267,36 @@ export default function Register() {
                   )}
                 />
 
+                {/* Division */}
                 <FormField
                   control={form.control}
-                  name="district"
+                  name="division"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-gray-500" />
-                        জেলা/এলাকা
+                        <MapPin className="w-3.5 h-3.5 text-primary" />
+                        বিভাগ
                       </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={(val) => {
+                          field.onChange(val);
+                          // Reset district when division changes so a stale
+                          // district from another division can never be saved.
+                          form.setValue("district", "", { shouldValidate: false });
+                        }}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary">
-                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                            <SelectValue placeholder="বিভাগ নির্বাচন করুন" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-h-72">
-                          {DISTRICTS.map((d) => (
-                            <SelectItem key={d} value={d}>{d}</SelectItem>
+                          {BD_DIVISIONS.map((d) => (
+                            <SelectItem key={d.name} value={d.name}>
+                              <span className="font-medium">{d.bn}</span>
+                              <span className="text-gray-500 ml-2 font-en text-xs">{d.name}</span>
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -294,6 +305,52 @@ export default function Register() {
                   )}
                 />
               </div>
+
+              {/* District — depends on Division */}
+              <FormField
+                control={form.control}
+                name="district"
+                render={({ field }) => {
+                  const selectedDivision = form.watch("division");
+                  const districts = districtsForDivision(selectedDivision);
+                  const disabled = !selectedDivision;
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-gray-300 text-sm flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-gray-500" />
+                        জেলা
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                        disabled={disabled}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            className={`bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary ${
+                              disabled ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                          >
+                            <SelectValue
+                              placeholder={
+                                disabled ? "প্রথমে বিভাগ নির্বাচন করুন" : "জেলা নির্বাচন করুন"
+                              }
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-h-72">
+                          {districts.map((d) => (
+                            <SelectItem key={d} value={d}>
+                              {d}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-red-400 text-xs" />
+                    </FormItem>
+                  );
+                }}
+              />
 
               {/* WhatsApp with +880 prefix */}
               <FormField

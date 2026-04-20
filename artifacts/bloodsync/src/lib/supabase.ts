@@ -35,6 +35,7 @@ export interface Donor {
   id: number;
   name: string;
   blood_group: string;
+  division: string;
   district: string;
   whatsapp_number: string;
   smoker: boolean;

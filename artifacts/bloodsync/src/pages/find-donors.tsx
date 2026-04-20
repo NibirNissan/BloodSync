@@ -20,11 +20,7 @@ const DONORS_QUERY_KEY = ["supabase", "donors"] as const;
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-const DISTRICTS = [
-  "Dhaka", "Chittagong", "Rajshahi", "Khulna", "Sylhet", "Barisal",
-  "Rangpur", "Mymensingh", "Comilla", "Narayanganj", "Gazipur",
-  "Tangail", "Jessore", "Bogura", "Cox's Bazar", "Jamalpur",
-];
+import { BD_DIVISIONS, districtsForDivision } from "@/data/bdLocations";
 
 type DonorType = Donor;
 
@@ -495,6 +491,7 @@ function DonorCard({ donor, index, onRequest }: { donor: DonorType; index: numbe
 // ─── Main Find Donors Page ───────────────────────────────────────────────────
 export default function FindDonors() {
   const [bloodGroup, setBloodGroup] = useState<string>("all");
+  const [division, setDivision] = useState<string>("all");
   const [district, setDistrict] = useState<string>("all");
   const [onlyAvailable, setOnlyAvailable] = useState(true);
   const [activeDonor, setActiveDonor] = useState<DonorType | null>(null);
@@ -530,16 +527,19 @@ export default function FindDonors() {
     if (!allDonors) return [];
     return allDonors.filter((d) => {
       if (bloodGroup !== "all" && d.blood_group !== bloodGroup) return false;
+      if (division !== "all" && d.division !== division) return false;
       if (district !== "all" && d.district !== district) return false;
       if (onlyAvailable && !d.is_willing_to_donate) return false;
       return true;
     });
-  }, [allDonors, bloodGroup, district, onlyAvailable]);
+  }, [allDonors, bloodGroup, division, district, onlyAvailable]);
 
-  const hasActiveFilters = bloodGroup !== "all" || district !== "all" || !onlyAvailable;
+  const hasActiveFilters =
+    bloodGroup !== "all" || division !== "all" || district !== "all" || !onlyAvailable;
 
   const clearAll = () => {
     setBloodGroup("all");
+    setDivision("all");
     setDistrict("all");
     setOnlyAvailable(true);
   };
@@ -575,8 +575,8 @@ export default function FindDonors() {
         >
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
 
-            {/* Filter row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Filter row — Blood, Division, District, Availability */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Blood Group */}
               <div className="space-y-1.5">
                 <label className="text-xs text-gray-300 tracking-wide font-medium flex items-center gap-1.5">
@@ -600,21 +600,65 @@ export default function FindDonors() {
                 </Select>
               </div>
 
-              {/* Location / District */}
+              {/* Division */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-gray-300 tracking-wide font-medium flex items-center gap-1.5">
+                  <MapPin className="w-3 h-3 text-primary" />
+                  বিভাগ
+                </label>
+                <Select
+                  value={division}
+                  onValueChange={(v) => {
+                    setDivision(v);
+                    // Reset district whenever division changes so the user
+                    // never holds a stale district from another division.
+                    setDistrict("all");
+                  }}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary">
+                    <SelectValue placeholder="সকল বিভাগ" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-h-72">
+                    <SelectItem value="all">
+                      <span className="text-gray-400">সকল বিভাগ</span>
+                    </SelectItem>
+                    {BD_DIVISIONS.map((d) => (
+                      <SelectItem key={d.name} value={d.name}>
+                        <span className="font-medium">{d.bn}</span>
+                        <span className="text-gray-500 ml-2 font-en text-xs">{d.name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* District — depends on Division */}
               <div className="space-y-1.5">
                 <label className="text-xs text-gray-300 tracking-wide font-medium flex items-center gap-1.5">
                   <MapPin className="w-3 h-3 text-gray-500" />
-                  জেলা/এলাকা
+                  জেলা
                 </label>
-                <Select value={district} onValueChange={setDistrict}>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary">
-                    <SelectValue placeholder="সকল জেলা" />
+                <Select
+                  value={district}
+                  onValueChange={setDistrict}
+                  disabled={division === "all"}
+                >
+                  <SelectTrigger
+                    className={`bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary ${
+                      division === "all" ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <SelectValue
+                      placeholder={
+                        division === "all" ? "প্রথমে বিভাগ নির্বাচন করুন" : "সকল জেলা"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-h-72">
                     <SelectItem value="all">
                       <span className="text-gray-400">সকল জেলা</span>
                     </SelectItem>
-                    {DISTRICTS.map((d) => (
+                    {districtsForDivision(division === "all" ? null : division).map((d) => (
                       <SelectItem key={d} value={d}>{d}</SelectItem>
                     ))}
                   </SelectContent>
@@ -654,6 +698,11 @@ export default function FindDonors() {
                 {bloodGroup !== "all" && (
                   <span className="inline-flex items-center text-xs text-primary bg-primary/10 border border-primary/25 px-2 py-0.5 rounded-full font-semibold">
                     {bloodGroup}
+                  </span>
+                )}
+                {division !== "all" && (
+                  <span className="inline-flex items-center gap-1 text-xs text-primary bg-primary/10 border border-primary/25 px-2 py-0.5 rounded-full">
+                    <MapPin className="w-2.5 h-2.5" /> {division}
                   </span>
                 )}
                 {district !== "all" && (
