@@ -97,15 +97,22 @@ export default function Home() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
             className="text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] max-w-6xl"
+            style={{ textShadow: "0 2px 24px rgba(0,0,0,0.85)" }}
           >
             <span className="text-white">কারো জীবনের</span>
             <br />
-            <span className="glow-red-text">স্পন্দন হোন আজই।</span>
+            <span
+              className="text-red-500 inline-block"
+              style={{ filter: "drop-shadow(0 0 18px rgba(239,0,51,0.55))" }}
+            >
+              স্পন্দন হোন আজই।
+            </span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg md:text-xl text-gray-400 max-w-2xl leading-relaxed"
+            className="text-lg md:text-xl text-white/85 max-w-2xl leading-relaxed"
+            style={{ textShadow: "0 1px 14px rgba(0,0,0,0.85)" }}
           >
             চিকিৎসা জরুরি অবস্থায় সরাসরি মানুষের সাথে যুক্ত হোন। প্রতিটি দান সর্বোচ্চ তিনটি জীবন বাঁচাতে পারে। আজই নিবন্ধন করুন অথবা আপনার কাছাকাছি একজন ডোনার খুঁজুন।
           </motion.p>
@@ -142,7 +149,7 @@ export default function Home() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-3xl px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8"
+          className="bg-[#0a0a0c]/80 backdrop-blur-2xl border border-white/15 rounded-3xl px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8 shadow-2xl"
         >
           {liveStats.map((s, i) => (
             <div key={s.label} className={`text-center ${i > 0 ? "md:border-l md:border-white/10" : ""}`}>
@@ -152,7 +159,7 @@ export default function Home() {
               <p className="text-5xl font-black text-white tabular-nums font-en">
                 {isLoading ? <span className="text-gray-700">—</span> : s.value ?? 0}
               </p>
-              <p className="text-xs text-gray-400 tracking-wide mt-2 font-medium">{s.label}</p>
+              <p className="text-xs text-white/70 tracking-wide mt-2 font-medium">{s.label}</p>
             </div>
           ))}
         </motion.div>
@@ -168,8 +175,17 @@ export default function Home() {
           className="text-center mb-12"
         >
           <p className="text-xs text-primary uppercase tracking-[0.25em] font-semibold font-en mb-3">What we do</p>
-          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto">
-            <span className="glow-red-text">জীবনের</span> জন্য তৈরি একটি প্ল্যাটফর্ম।
+          <h2
+            className="text-4xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto"
+            style={{ textShadow: "0 2px 18px rgba(0,0,0,0.85)" }}
+          >
+            <span
+              className="text-red-500 inline-block"
+              style={{ filter: "drop-shadow(0 0 14px rgba(239,0,51,0.55))" }}
+            >
+              জীবনের
+            </span>{" "}
+            জন্য তৈরি একটি প্ল্যাটফর্ম।
           </h2>
         </motion.div>
 
@@ -181,13 +197,13 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: i * 0.05 }}
-              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 group"
+              className="bg-[#0a0a0c]/80 backdrop-blur-2xl border border-white/15 rounded-3xl p-8 hover:bg-[#0a0a0c]/90 hover:border-white/25 transition-all duration-300 group shadow-2xl"
             >
               <div className={`w-12 h-12 rounded-2xl ${f.bg} border ${f.border} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
                 <f.icon className={`w-5 h-5 ${f.accent}`} />
               </div>
               <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
+              <p className="text-sm text-white/75 leading-relaxed">{f.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -200,14 +216,24 @@ export default function Home() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative overflow-hidden bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[2rem] p-12 md:p-20 text-center"
+          className="relative overflow-hidden bg-[#0a0a0c]/85 backdrop-blur-2xl border border-white/15 rounded-[2rem] p-12 md:p-20 text-center shadow-2xl"
         >
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/15 blur-[120px] rounded-full pointer-events-none" />
           <div className="relative">
-            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-tight">
-              যখন সবচেয়ে বেশি প্রয়োজন, <span className="glow-red-text">আপনার রক্তের গ্রুপই</span> হতে পারে একমাত্র উপায়।
+            <h2
+              className="text-3xl md:text-5xl font-bold text-white tracking-tight max-w-3xl mx-auto leading-tight"
+              style={{ textShadow: "0 2px 18px rgba(0,0,0,0.85)" }}
+            >
+              যখন সবচেয়ে বেশি প্রয়োজন,{" "}
+              <span
+                className="text-red-500 inline-block"
+                style={{ filter: "drop-shadow(0 0 14px rgba(239,0,51,0.55))" }}
+              >
+                আপনার রক্তের গ্রুপই
+              </span>{" "}
+              হতে পারে একমাত্র উপায়।
             </h2>
-            <p className="text-gray-400 mt-5 max-w-xl mx-auto">
+            <p className="text-white/80 mt-5 max-w-xl mx-auto">
               শহরে শহরে নীরবে জীবন বাঁচাচ্ছেন এমন হাজারো ডোনারের সাথে যোগ দিন। নিবন্ধনে সময় লাগে দুই মিনিটেরও কম।
             </p>
             <Link href="/register">
