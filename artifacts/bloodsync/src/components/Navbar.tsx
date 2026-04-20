@@ -14,16 +14,18 @@ export function Navbar() {
   const isAuthed = !!user;
   const dashboardHref = routeForRole(profile?.role);
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     setMobileMenuOpen(false);
-    // 1. Revoke the Supabase session on the server.
-    try { await supabase.auth.signOut(); }
-    catch (err) { console.warn("[navbar] supabase.signOut error (continuing):", err); }
-    // 2. Wipe every persisted browser state so no token can survive.
+    // EMERGENCY EXIT — must work even if a request is hung.
+    // 1. Fire the Supabase sign-out request but DO NOT await it. If the
+    //    network is stuck, we still want to escape the authenticated state.
+    try { void supabase.auth.signOut(); }
+    catch (err) { console.warn("[navbar] supabase.signOut threw (ignored):", err); }
+    // 2. Wipe every persisted browser state immediately so no token can survive.
     try { localStorage.clear(); } catch { /* non-fatal */ }
     try { sessionStorage.clear(); } catch { /* non-fatal */ }
-    // 3. Replace history entry with "/" so back-button cannot return to the
-    //    authenticated page — forces a full reload, clearing any stuck state.
+    // 3. Hard-replace the history entry with "/" — drops all pending
+    //    requests, destroys React state, and prevents back-navigation.
     window.location.replace("/");
   };
 

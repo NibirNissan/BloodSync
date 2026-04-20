@@ -58,15 +58,19 @@ export function BlogManagement() {
 
     setSubmitting(true);
 
-    // 12 s hard safety timeout so the spinner can never get stuck.
+    // 10 s hard safety timeout — if Supabase doesn't respond, we surface
+    // the schema/connection error and unfreeze the button so the user
+    // can never be stuck watching a forever-spinning spinner.
+    let timedOut = false;
     const timeoutId = window.setTimeout(() => {
+      timedOut = true;
       setSubmitting(false);
       toast({
         variant: "destructive",
-        title: "Publish timed out",
-        description: "Supabase did not respond in 12 seconds. Check network / RLS and try again.",
+        title: "Request timed out",
+        description: "Database response timed out. Please check your connection or table schema.",
       });
-    }, 12000);
+    }, 10000);
 
     try {
       // ── Explicitly fetch the current authenticated user from Supabase.
@@ -79,6 +83,7 @@ export function BlogManagement() {
       }
 
       // Insert payload — keys match the blogs table columns EXACTLY.
+      // NOTE: author_uid (NOT author_id) is required to satisfy RLS.
       const payload = {
         title: t,
         excerpt: ex,
@@ -87,11 +92,26 @@ export function BlogManagement() {
         author_uid: authUser.id,
       };
 
-      const { data, error } = await supabase
+      // Race the insert against a 10-second timeout so a hung Supabase
+      // request can never freeze the UI. Whichever promise settles first wins.
+      const insertPromise = supabase
         .from("blogs")
         .insert(payload)
         .select()
         .single();
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        window.setTimeout(
+          () => reject(new Error("Database response timed out. Please check your connection or table schema.")),
+          10000,
+        ),
+      );
+
+      const { data, error } = (await Promise.race([insertPromise, timeoutPromise])) as Awaited<typeof insertPromise>;
+
+      // If the visible-spinner timeout already fired, abort silently —
+      // the user has already been notified by the timeout toast above.
+      if (timedOut) return;
 
       if (error) {
         console.error("Full Supabase Error:", error);
